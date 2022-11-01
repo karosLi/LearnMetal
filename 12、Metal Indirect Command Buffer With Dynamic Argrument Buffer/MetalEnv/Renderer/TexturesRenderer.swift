@@ -7,7 +7,7 @@
 
 import MetalKit
 
-let instanceBufferCount = 50000
+var instanceBufferCount = 5000
 
 /// https://developer.apple.com/documentation/metal/
 class TexturesRenderer: NSObject {
@@ -15,6 +15,7 @@ class TexturesRenderer: NSObject {
     private let commandQueue: MTLCommandQueue
     private var viewPortSize: vector_uint2 = vector_uint2(1,1)
     
+    private var icbDescriptor: MTLIndirectCommandBufferDescriptor!
     /// 间接命令缓冲，渲染命令通过compute shader转发给渲染管线
     private var indirectCommandBuffer: MTLIndirectCommandBuffer?
     /// icb 参数缓冲，包含 indirectCommandBuffer，让 compute shader 可以拿到这个参数，从而拿到里面存储的 icb
@@ -75,6 +76,7 @@ class TexturesRenderer: NSObject {
         buildRenderPipelineState()
         buildSamplerState()
         updateSize(size: size)
+        buildICB()
         
         /// debug
 //        setupProgrammaticCaptureScope()
@@ -95,14 +97,14 @@ extension TexturesRenderer {
             print("error: \(error.localizedDescription)")
         }
         
-        let icbDescriptor = MTLIndirectCommandBufferDescriptor()
+        icbDescriptor = MTLIndirectCommandBufferDescriptor()
         icbDescriptor.commandTypes = .drawIndexed
         // Indicate that buffers will be set for each command in the indirect command buffer.
         icbDescriptor.inheritBuffers = false
         
         // Indicate that a maximum of 4 buffers will be set for each command.
-        icbDescriptor.maxVertexBufferBindCount = 25
-        icbDescriptor.maxFragmentBufferBindCount = 25
+        icbDescriptor.maxVertexBufferBindCount = 8
+        icbDescriptor.maxFragmentBufferBindCount = 8
         
         // Indicate that the render pipeline state object will be set in the render command encoder
         // (not by the indirect command buffer).
@@ -246,7 +248,6 @@ extension TexturesRenderer {
         instances.append(instance1)
         
         instanceBuffer = device.makeBuffer(bytes: &instances, length: MemoryLayout<InstanceUniform>.stride * instances.count, options: [])
-        buildICB()
     }
 }
 
@@ -273,8 +274,9 @@ extension TexturesRenderer: MTKViewDelegate {
               let descriptor = view.currentRenderPassDescriptor,
               let computePipelineState = computePipelineState,
               let indirectCommandBuffer = indirectCommandBuffer else { return }
+        // 如果实际物理数量大于 instanceBufferCount，就分批 draw call
         
-       
+        
         /// 动态修改绑定到片元着色上的 argument buffer 中保存的纹理
         for (var index, texture) in textures.enumerated() {
             let fragmentTexturesArgumentEncoder = fragmentTextureArgumentEncoders[index]
@@ -365,12 +367,8 @@ extension TexturesRenderer: MTKViewDelegate {
 //        renderEncoder.useResource(uniformBuffer, usage: .read)
 //        renderEncoder.useResource(instanceBuffer, usage: .read)
         
-        for texture in textures {
-            renderEncoder.useResource(texture, usage: .read)
-        }
-//        renderEncoder.useResources(instanceTextureArgumentBuffers, usage: .read)
-        
-        
+        // 因为使用的是 argument buffer 里的纹理，所以需要显示使用资源
+        renderEncoder.useResources(textures, usage: .read)
 //        renderEncoder.setFragmentBuffer(textureArgumentBuffer, offset: 0, index: KernelBufferIndexTextures.index)
         renderEncoder.executeCommandsInBuffer(indirectCommandBuffer, range: instanceRange)
         renderEncoder.endEncoding()
@@ -379,8 +377,8 @@ extension TexturesRenderer: MTKViewDelegate {
         // Present drawable to screen only after previous drawable has been on screen for a
         // mimimum of 16ms to achieve a smooth framerate of 60 FPS.  This prevents jittering on
         // devices with ProMotion displays that support a variable refresh rate from 120 to 30 FPS.
-        commandBuffer.present(drawable, afterMinimumDuration: 0.016)
-//        commandBuffer.present(drawable)
+//        commandBuffer.present(drawable, afterMinimumDuration: 0.016)
+        commandBuffer.present(drawable)
         commandBuffer.commit()
 //        myCaptureScope?.end()
     }
