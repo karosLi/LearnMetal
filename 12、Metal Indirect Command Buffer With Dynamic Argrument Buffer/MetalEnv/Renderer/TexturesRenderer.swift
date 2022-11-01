@@ -274,15 +274,6 @@ extension TexturesRenderer: MTKViewDelegate {
               let descriptor = view.currentRenderPassDescriptor,
               let computePipelineState = computePipelineState,
               let indirectCommandBuffer = indirectCommandBuffer else { return }
-        // 如果实际物理数量大于 instanceBufferCount，就分批 draw call
-        
-        
-        /// 动态修改绑定到片元着色上的 argument buffer 中保存的纹理
-        for (var index, texture) in textures.enumerated() {
-            let fragmentTexturesArgumentEncoder = fragmentTextureArgumentEncoders[index]
-            fragmentTexturesArgumentEncoder.setTexture(texture, index: 0)
-            fragmentTexturesArgumentEncoder.constantData(at: 1).copyMemory(from: &index, byteCount: MemoryLayout<Int>.stride)
-        }
         
 //        myCaptureScope?.begin()
         let instanceCount = instances.count
@@ -290,6 +281,16 @@ extension TexturesRenderer: MTKViewDelegate {
         
         let commandBuffer = commandQueue.makeCommandBuffer()!
         commandBuffer.label = "Frame Command Buffer"
+        
+        commandBuffer.pushDebugGroup("设置纹理开始")
+        /// 如果实际物理数量大于 instanceBufferCount，就分批 draw call
+        /// 动态修改绑定到片元着色上的 argument buffer 中保存的纹理
+        for (var index, texture) in textures.enumerated() {
+            let fragmentTexturesArgumentEncoder = fragmentTextureArgumentEncoders[index]
+            fragmentTexturesArgumentEncoder.setTexture(texture, index: 0)
+            fragmentTexturesArgumentEncoder.constantData(at: 1).copyMemory(from: &index, byteCount: MemoryLayout<Int>.stride)
+        }
+        commandBuffer.pushDebugGroup("设置纹理结束")
         
         /// 重置 indirect command buffer
         let resetBlitEncoder = commandBuffer.makeBlitCommandEncoder()
