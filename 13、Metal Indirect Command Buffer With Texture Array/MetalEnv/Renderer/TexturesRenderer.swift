@@ -50,14 +50,11 @@ class TexturesRenderer: NSObject {
     private var samplerState: MTLSamplerState?
     /// 实例纹理索引 - 纹理id
     private var textureIndexes = [Int: Int]()
-    private var textures = [MTLTexture]()
     
     private var uniform = Uniform()
     
     /// 总共可渲染的实例数量
     private var drawCount = 0
-    /// 当前 draw call 需要用到的纹理
-    private var curDrawTextures = [MTLTexture]()
     
     private var myCaptureScope: MTLCaptureScope?
     
@@ -251,11 +248,6 @@ extension TexturesRenderer {
 
 /// MARK - 更新数据
 extension TexturesRenderer {
-    func clear() {
-        drawCount = 0
-//        textures.removeAll()
-    }
-    
     func reset() {
         drawCount = 0
     }
@@ -436,20 +428,17 @@ extension TexturesRenderer: MTKViewDelegate {
 //        myCaptureScope?.end()
     }
     
-    private func bindTextures() {
-        textures.removeAll()
+    private func draw(_ renderEncoder: MTLRenderCommandEncoder, range: Range<Int>) {
+        guard let indirectCommandBuffer = indirectCommandBuffer else { return }
+        
+        /// 使用本地数组去赋值给 shader，不然成员变量在多个 draw call 时会导致数据被修改，从而导致后面的 draw call 绑定的纹理 会影响前面的 draw call 的绑定的纹理
+        var textures = [MTLTexture]()
         for index in 0..<textureIndexes.count {
             let saveTextureId = textureIndexes[index]
             if let texture = TextureController.getTexture(saveTextureId) {
                 textures.append(texture)
             }
         }
-    }
-    
-    private func draw(_ renderEncoder: MTLRenderCommandEncoder, range: Range<Int>) {
-        guard let indirectCommandBuffer = indirectCommandBuffer else { return }
-        
-        bindTextures()
         textureIndexes.removeAll()
         
         /// 动态修改绑定到片元着色上的 argument buffer 中保存的纹理数组
