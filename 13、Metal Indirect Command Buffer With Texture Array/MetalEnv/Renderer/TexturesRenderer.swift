@@ -329,11 +329,6 @@ extension TexturesRenderer: MTKViewDelegate {
         
         delegate?.update()
         
-        /// 动态修改绑定到片元着色上的 argument buffer 中保存的纹理数组
-        bindTextures()
-        fragmentMaterialArgumentEncoder.setTextures(textures, range: 0..<textures.count)
-        
-        
         let commandBuffer = MetalContext.commandQueue.makeCommandBuffer()!
         commandBuffer.label = "Frame Command Buffer"
         
@@ -390,49 +385,47 @@ extension TexturesRenderer: MTKViewDelegate {
         var fromDrawIndex = 0
         var endDrawIndex = drawCount - 1
         
-//        var pointer = instancesBuffer.contents().bindMemory(to: InstanceUniform.self, capacity: instanceBufferCount)
-//        for drawIndex in 0..<drawCount {
-//            /// 如果实际物体数量大于 icbCommandMaxCount 或者 超过 32 重纹理，就分批 draw call
-//            var willExceedMaxTextureNum = false
-//            let textureId = pointer.pointee.textureId
-//            var textureIndex: Int = 0
-//            var foundSame = false
-//            for (saveTextureIndex, saveTextureId) in textureIndexes {
-//                if textureId == saveTextureId {// 说明待绑定纹理列表中找到了纹理id，那么可以直接把存储的纹理索引赋值给实例
-//                    textureIndex = saveTextureIndex
-//                    foundSame = true
-//                    break
-//                }
-//            }
-//
-//            // 如果没有找到就把纹理id加入到待绑定纹理列表里
-//            if !foundSame {
-//                // 判断下是否有超过单次绘制的最大纹理数量
-//                if textureIndexes.count < maxGPUBindTextureCount {
-//                    let index = textureIndexes.count
-//                    textureIndexes[index] = Int(textureId)
-//                    textureIndex = index
-//                }
-//
-//                // 添加完成后判断下是否即将超过最大纹理
-//                willExceedMaxTextureNum = textureIndexes.count >= maxGPUBindTextureCount
-//            }
-//
-//            pointer.pointee.textureIndex = Int32(textureIndex)
-//
-//            /// 如果即将超过，就先绘制一次
-//            if willExceedMaxTextureNum {
-//                bindTextures()
-//                endDrawIndex = drawIndex
-//                draw(renderEncoder, range: fromDrawIndex..<endDrawIndex + 1)
-//                fromDrawIndex = endDrawIndex + 1
-//            }
-//
-//            pointer = pointer.advanced(by: 1)
-//        }
+        var pointer = instancesBuffer.contents().bindMemory(to: InstanceUniform.self, capacity: instanceBufferCount)
+        for drawIndex in 0..<drawCount {
+            /// 如果实际物体数量大于 icbCommandMaxCount 或者 超过 32 重纹理，就分批 draw call
+            var willExceedMaxTextureNum = false
+            let textureId = pointer.pointee.textureId
+            var textureIndex: Int = 0
+            var foundSame = false
+            for (saveTextureIndex, saveTextureId) in textureIndexes {
+                if textureId == saveTextureId {// 说明待绑定纹理列表中找到了纹理id，那么可以直接把存储的纹理索引赋值给实例
+                    textureIndex = saveTextureIndex
+                    foundSame = true
+                    break
+                }
+            }
+
+            // 如果没有找到就把纹理id加入到待绑定纹理列表里
+            if !foundSame {
+                // 判断下是否有超过单次绘制的最大纹理数量
+                if textureIndexes.count < maxGPUBindTextureCount {
+                    let index = textureIndexes.count
+                    textureIndexes[index] = Int(textureId)
+                    textureIndex = index
+                }
+
+                // 添加完成后判断下是否即将超过最大纹理
+                willExceedMaxTextureNum = textureIndexes.count >= maxGPUBindTextureCount
+            }
+
+            pointer.pointee.textureIndex = Int32(textureIndex)
+
+            /// 如果即将超过，就先绘制一次
+            if willExceedMaxTextureNum {
+                endDrawIndex = drawIndex
+                draw(renderEncoder, range: fromDrawIndex..<endDrawIndex + 1)
+                fromDrawIndex = endDrawIndex + 1
+            }
+
+            pointer = pointer.advanced(by: 1)
+        }
         
         if fromDrawIndex < endDrawIndex + 1 {
-            bindTextures()
             draw(renderEncoder, range: fromDrawIndex..<endDrawIndex + 1)
         }
         
@@ -445,26 +438,26 @@ extension TexturesRenderer: MTKViewDelegate {
     
     private func bindTextures() {
         textures.removeAll()
-        textures.append(TextureController.getTexture(0)!)
-        textures.append(TextureController.getTexture(1)!)
-//        for (_, saveTextureId) in textureIndexes {
-//            if let texture = TextureController.getTexture(saveTextureId) {
-//                textures.append(texture)
-//            }
-//        }
+        for index in 0..<textureIndexes.count {
+            let saveTextureId = textureIndexes[index]
+            if let texture = TextureController.getTexture(saveTextureId) {
+                textures.append(texture)
+            }
+        }
     }
     
     private func draw(_ renderEncoder: MTLRenderCommandEncoder, range: Range<Int>) {
         guard let indirectCommandBuffer = indirectCommandBuffer else { return }
         
-//        /// 动态修改绑定到片元着色上的 argument buffer 中保存的纹理数组
-//        fragmentMaterialArgumentEncoder.setTextures(textures, range: 0..<textures.count)
+        bindTextures()
+        textureIndexes.removeAll()
+        
+        /// 动态修改绑定到片元着色上的 argument buffer 中保存的纹理数组
+        fragmentMaterialArgumentEncoder.setTextures(textures, range: 0..<textures.count)
         
         // 因为使用的是 argument buffer 里的纹理，所以需要显示使用资源
         renderEncoder.useResources(textures, usage: .read)
         renderEncoder.executeCommandsInBuffer(indirectCommandBuffer, range: range)
-        
-        textureIndexes.removeAll()
     }
 }
 
