@@ -201,10 +201,19 @@ extension TexturesRenderer {
         pipelineDescriptor.vertexFunction = vertexFunction
         pipelineDescriptor.fragmentFunction = fragmentFunction
         pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
-        /// 颜色混合非常耗性能
+        /// 多个物体重叠在一个位置时，颜色混合非常耗性能
         pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
         pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha;
         pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha;
+        
+        
+//        pipelineDescriptor.colorAttachments[0].rgbBlendOperation = .add;
+//        pipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add;
+//        pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .sourceAlpha;
+//        pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .sourceAlpha;
+//        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha;
+//        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha;
+
         
         let vertexDescriptor = MTLVertexDescriptor()
         vertexDescriptor.attributes[0].format = .float2

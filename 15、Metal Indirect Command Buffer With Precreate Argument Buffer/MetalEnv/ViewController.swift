@@ -41,7 +41,7 @@ class ViewController: UIViewController {
         let node1 = SpriteNode(Material(textureId: textureId1));
         node1.uniform.position = [0, 300, 0]
         node1.uniform.scale = [500, 500, 1]
-//        node1.uniform.alpha = 0.1
+        node1.uniform.alpha = 0.1
         
         let node2 = SpriteNode(Material(textureId: textureId2));
         node2.uniform.position = [0, -300, 0]
@@ -50,12 +50,12 @@ class ViewController: UIViewController {
         renderer.spriteNodes.append(node1)
         renderer.spriteNodes.append(node2)
         
-        for _ in 0..<1000 {
-            let node1 = SpriteNode(Material(textureId: textureId1));
-            node1.uniform.position = [0, 300, 0]
-            node1.uniform.scale = [500, 500, 1]
-            renderer.spriteNodes.append(node1)
-        }
+//        for _ in 0..<1000 {
+//            let node1 = SpriteNode(Material(textureId: textureId1));
+//            node1.uniform.position = [0, 300, 0]
+//            node1.uniform.scale = [500, 500, 1]
+//            renderer.spriteNodes.append(node1)
+//        }
     }
 }
 

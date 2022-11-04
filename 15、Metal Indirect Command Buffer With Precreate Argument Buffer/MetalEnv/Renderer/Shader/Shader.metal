@@ -168,22 +168,22 @@ fragment half4 instance_fragment_shader(const RasterizerData vertexIn [[ stage_i
 //////                                        ,
 //                                        constant FragmentSampler &fragmentSampler [[ buffer(FragmentBufferIndexSampler) ]]
                                         ) {
-    constexpr sampler texture_sampler (mag_filter::linear,
-                                        min_filter::linear,
-                                        mip_filter::linear);
+//    constexpr sampler texture_sampler (mag_filter::linear,
+//                                        min_filter::linear,
+//                                        mip_filter::linear);
     
-//    constexpr sampler texture_sampler(
-//      filter::linear,
-//      address::repeat,
-//      mip_filter::linear,
-//      max_anisotropy(8));
+    constexpr sampler texture_sampler(
+      filter::linear,
+      address::repeat,
+      mip_filter::linear,
+      max_anisotropy(8));
 
 //    device Material &material = materials[vertexIn.textureIndex];
     texture2d<float> mainTexture = material.texture;
 //
     if (!is_null_texture(mainTexture)) {
         float4 color = mainTexture.sample(texture_sampler, vertexIn.textureCoords);
-        return half4(color.r, color.g, color.b, 1) * vertexIn.alpha;
+        return half4(color.r, color.g, color.b, color.a) * vertexIn.alpha;
 //        return half4(1, 1, 0, 1);
     }
 
