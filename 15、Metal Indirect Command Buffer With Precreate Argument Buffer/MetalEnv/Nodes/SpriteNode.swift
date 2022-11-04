@@ -34,7 +34,7 @@ class SpriteNode: NSObject {
     var material: Material = Material(textureId: nil, color: [1, 0, 0])
     
     init(_ material: Material) {
-        uniform = InstanceUniform(position: [0, 0, 0], scale: [100, 100, 1], rotation: [0, 0, 0], textureFrame: [0, 0, 1, 1], materialIndex: 0, modelMatrix: .identity)
+        uniform = InstanceUniform(position: [0, 0, 0], scale: [100, 100, 1], rotation: [0, 0, 0], textureFrame: [0, 0, 1, 1], alpha: 1, materialIndex: 0, modelMatrix: .identity)
         self.material = material
         super.init()
     }

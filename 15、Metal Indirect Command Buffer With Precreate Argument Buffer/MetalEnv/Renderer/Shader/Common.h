@@ -32,10 +32,11 @@ typedef struct {
     vector_float3 rotation;
     /// 实例纹理坐标
     vector_float4 textureFrame;
-    
-//    
-//    
-//    
+    /// 透明度
+    float alpha;
+//
+//
+//
 //    // 用于丝带渲染
 //    GLKVector4 stripPoints;// 丝带上下两个数据节点的位置，xy 是顶部数据节点的位置，zw 是底部数据节点的位置
 //    GLKVector2 stripRadians;// 丝带上下两个数据节点的旋转弧度，x 是顶部数据节点的旋转弧度，y 是底部数据节点的旋转弧度

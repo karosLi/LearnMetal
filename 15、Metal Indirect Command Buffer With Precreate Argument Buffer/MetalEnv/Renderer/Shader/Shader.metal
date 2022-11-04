@@ -115,6 +115,7 @@ struct VertexIn {
 struct RasterizerData {
     float4 position [[ position ]];
     float2 textureCoords;
+    float alpha;
     int textureIndex;
 };
 
@@ -146,6 +147,7 @@ vertex RasterizerData instance_vertex_shader(uint vertexID [[ vertex_id ]],
     RasterizerData vertexOut;
     vertexOut.position = position;
     vertexOut.textureCoords = vertexIn.uv;
+    vertexOut.alpha = instance.alpha;
     
     return vertexOut;
 }
@@ -181,9 +183,9 @@ fragment half4 instance_fragment_shader(const RasterizerData vertexIn [[ stage_i
 //
     if (!is_null_texture(mainTexture)) {
         float4 color = mainTexture.sample(texture_sampler, vertexIn.textureCoords);
-        return half4(color.r, color.g, color.b, 1);
+        return half4(color.r, color.g, color.b, 1) * vertexIn.alpha;
 //        return half4(1, 1, 0, 1);
     }
 
-    return half4(1, 0, 0, 1);
+    return half4(1, 0, 0, 1) * vertexIn.alpha;
 }
