@@ -35,6 +35,7 @@ class TexturesRenderer: NSObject {
     private var indirectCommandBuffer: MTLIndirectCommandBuffer?
     /// 渲染管线，需要通过参数缓冲传给计算着色器
     private var renderPipelineState: MTLRenderPipelineState?
+    private var depthStencilState: MTLDepthStencilState?
     
     /// icb 材质 buffer
     public var icbMaterialArgumentBuffer: MTLBuffer!
@@ -234,6 +235,11 @@ extension TexturesRenderer {
             print("error: \(error.localizedDescription)")
         }
         
+        let depthStencilDescriptor = MTLDepthStencilDescriptor()
+        depthStencilDescriptor.depthCompareFunction = .less
+        depthStencilDescriptor.isDepthWriteEnabled = true
+        depthStencilState = MetalContext.device.makeDepthStencilState(descriptor: depthStencilDescriptor)
+        
         uniformBuffer = MetalContext.device.makeBuffer(length: MemoryLayout<Uniform>.stride, options: [])
     }
     
@@ -303,7 +309,7 @@ extension TexturesRenderer: MTKViewDelegate {
         /// 构建 MVP
         uniform.modelMatrix = .identity
         uniform.viewMatrix = .identity
-        let projectionMatrix = Float4x4.init(orthoLeft: -Float(viewPortSize.x) / 2.0, right: Float(viewPortSize.x) / 2.0, bottom: -Float(viewPortSize.y) / 2.0, top: Float(viewPortSize.y) / 2.0, near: -1, far: 1)
+        let projectionMatrix = Float4x4.init(orthoLeft: -Float(viewPortSize.x) / 2.0, right: Float(viewPortSize.x) / 2.0, bottom: -Float(viewPortSize.y) / 2.0, top: Float(viewPortSize.y) / 2.0, near: 0, far: 1000)
         uniform.projectionMatrix = projectionMatrix
         uniformBuffer.contents().copyMemory(from: &uniform, byteCount: MemoryLayout<Uniform>.stride)
     }
@@ -513,12 +519,7 @@ extension TexturesRenderer: MTKViewDelegate {
             optimizeBlitEncoder?.endEncoding()
             
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor)!
-            // 因为使用的是 argument buffer 里的纹理，所以需要显示使用资源
-//            renderEncoder.useResources(textures, usage: .read)
-//            if let heap = TextureController.heap {
-//                renderEncoder.useHeap(heap)
-//            }
-//            renderEncoder.setFragmentSamplerState(samplerState, index: 0)
+            renderEncoder.setDepthStencilState(depthStencilState)
             renderEncoder.setFrontFacing(.counterClockwise)
             renderEncoder.setCullMode(.back)
             renderEncoder.executeCommandsInBuffer(indirectCommandBuffer, range: instanceRange)

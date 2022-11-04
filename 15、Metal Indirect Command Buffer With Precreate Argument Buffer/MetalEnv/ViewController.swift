@@ -39,12 +39,12 @@ class ViewController: UIViewController {
         TextureController.heap = TextureController.buildHeap()
         
         let node1 = SpriteNode(Material(textureId: textureId1));
-        node1.uniform.position = [0, 300, 0]
+        node1.uniform.position = [0, 0, 1]
         node1.uniform.scale = [500, 500, 1]
-        node1.uniform.alpha = 0.1
+//        node1.uniform.alpha = 0.1
         
         let node2 = SpriteNode(Material(textureId: textureId2));
-        node2.uniform.position = [0, -300, 0]
+        node2.uniform.position = [0, -300, 0.5]
         node2.uniform.scale = [500, 500, 1]
         
         renderer.spriteNodes.append(node1)
