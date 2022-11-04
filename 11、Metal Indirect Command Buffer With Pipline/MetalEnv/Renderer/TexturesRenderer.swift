@@ -241,7 +241,10 @@ extension TexturesRenderer {
         
         let instance1 = InstanceUniform(center: vector_float2(0.0, -300.0), size: vector_float2(500.0, 500.0), radian: 0.0, textureIndex: 1, textureFrame: vector_float4(0.0, 0.0, 1.0, 1.0), textureRadian: 0, modelMatrix: matrix4x4_indentify())
         instances.append(instance1)
-        
+        for _ in 0..<1000 {
+            let instance1 = InstanceUniform(center: vector_float2(0.0, -300.0), size: vector_float2(500.0, 500.0), radian: 0.0, textureIndex: 1, textureFrame: vector_float4(0.0, 0.0, 1.0, 1.0), textureRadian: 0, modelMatrix: matrix4x4_indentify())
+            instances.append(instance1)
+        }
         instanceBuffer = device.makeBuffer(bytes: &instances, length: MemoryLayout<InstanceUniform>.stride * instances.count, options: [])
         buildICB()
     }

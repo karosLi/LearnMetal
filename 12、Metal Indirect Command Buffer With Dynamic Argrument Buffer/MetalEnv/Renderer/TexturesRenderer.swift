@@ -7,7 +7,7 @@
 
 import MetalKit
 
-var instanceBufferCount = 5000
+var instanceBufferCount = 10000
 
 /// https://developer.apple.com/documentation/metal/
 class TexturesRenderer: NSObject {
@@ -247,6 +247,18 @@ extension TexturesRenderer {
         let instance1 = InstanceUniform(center: vector_float2(0.0, -300.0), size: vector_float2(500.0, 500.0), radian: 0.0, textureIndex: 1, textureFrame: vector_float4(0.0, 0.0, 1.0, 1.0), textureRadian: 0, modelMatrix: matrix4x4_indentify())
         instances.append(instance1)
         
+        
+        for _ in 0..<9998 {
+            let instance1 = InstanceUniform(center: vector_float2(0.0, -300.0), size: vector_float2(500.0, 500.0), radian: 0.0, textureIndex: 1, textureFrame: vector_float4(0.0, 0.0, 1.0, 1.0), textureRadian: 0, modelMatrix: matrix4x4_indentify())
+            instances.append(instance1)
+        }
+//
+//        for _ in 0..<1000 {
+//            let instance1 = InstanceUniform(center: vector_float2(0.0, -300.0), size: vector_float2(500.0, 500.0), radian: 0.0, textureIndex: 1, textureFrame: vector_float4(0.0, 0.0, 1.0, 1.0), textureRadian: 0, modelMatrix: matrix4x4_indentify())
+//            instances.append(instance1)
+//        }
+        
+//        instanceBuffer = device.makeBuffer(bytes: &instances, length: MemoryLayout<InstanceUniform>.stride * instances.count, options: [])
         instanceBuffer = device.makeBuffer(bytes: &instances, length: MemoryLayout<InstanceUniform>.stride * instances.count, options: [])
     }
 }
@@ -290,6 +302,30 @@ extension TexturesRenderer: MTKViewDelegate {
             fragmentTexturesArgumentEncoder.setTexture(texture, index: 0)
             fragmentTexturesArgumentEncoder.constantData(at: 1).copyMemory(from: &index, byteCount: MemoryLayout<Int>.stride)
         }
+        
+        
+        for var index in 2..<32 {
+//            guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
+//                return
+//            }
+//            let fragmentTextureArgumentBuffer = fragmentTextureArgumentBuffers[index]
+//
+//            blitEncoder.copy(from: textures.first!, sourceSlice: 0, sourceLevel: 0, sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0), sourceSize: MTLSize(width: 0, height: 0, depth: 1), to: fragmentTextureArgumentBuffer, destinationOffset: 0, destinationBytesPerRow: 0, destinationBytesPerImage: 0)
+//            blitEncoder.endEncoding()
+//
+//
+            
+            
+            
+            let fragmentTexturesArgumentEncoder = fragmentTextureArgumentEncoders[index]
+            fragmentTexturesArgumentEncoder.setTexture(textures.first, index: 0)
+            fragmentTexturesArgumentEncoder.constantData(at: 1).copyMemory(from: &index, byteCount: MemoryLayout<Int>.stride)
+
+            
+
+        }
+        
+        
         commandBuffer.pushDebugGroup("设置纹理结束")
         
         /// 重置 indirect command buffer

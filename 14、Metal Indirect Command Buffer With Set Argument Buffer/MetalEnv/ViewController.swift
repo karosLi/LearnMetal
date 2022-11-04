@@ -34,16 +34,27 @@ class ViewController: UIViewController {
         metalView.clearColor = Colors.wenderlichGreen
         metalView.delegate = renderer
         
-        let node1 = SpriteNode(texture: TextureController.texture(filename: "container"));
+        let textureId1 = TextureController.textureId(filename: "container")
+        let textureId2 = TextureController.textureId(filename: "awesomeface")
+        TextureController.heap = TextureController.buildHeap()
+        
+        let node1 = SpriteNode(textureId: textureId1);
         node1.uniform.position = [0, 300, 0]
         node1.uniform.scale = [500, 500, 1]
         
-        let node2 = SpriteNode(texture: TextureController.texture(filename: "awesomeface"));
+        let node2 = SpriteNode(textureId: textureId2);
         node2.uniform.position = [0, -300, 0]
         node2.uniform.scale = [500, 500, 1]
         
         renderer.spriteNodes.append(node1)
         renderer.spriteNodes.append(node2)
+        
+        for _ in 0..<5000 {
+            let node1 = SpriteNode(textureId: textureId1);
+            node1.uniform.position = [0, 300, 0]
+            node1.uniform.scale = [500, 500, 1]
+            renderer.spriteNodes.append(node1)
+        }
     }
 }
 

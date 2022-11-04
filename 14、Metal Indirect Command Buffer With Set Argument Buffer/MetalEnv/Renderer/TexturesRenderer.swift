@@ -7,7 +7,7 @@
 
 import MetalKit
 
-var icbCommandMaxCount = 1
+var icbCommandMaxCount = 10000
 var instanceBufferCount = 65535
 
 protocol TexturesRendererProtocol: NSObject {
@@ -17,6 +17,8 @@ protocol TexturesRendererProtocol: NSObject {
 /// https://developer.apple.com/documentation/metal/
 class TexturesRenderer: NSObject {
     public weak var delegate: TexturesRendererProtocol?
+    
+    private lazy var inFlightSemaphore = DispatchSemaphore(value: 1)
     
     private var viewPortSize: vector_uint2 = vector_uint2(1,1)
     
@@ -34,13 +36,13 @@ class TexturesRenderer: NSObject {
     private var renderPipelineState: MTLRenderPipelineState?
     
     /// icb 材质 buffer
-    private var icbMaterialArgumentBuffer: MTLBuffer!
-    private var icbMaterialArgumentEncoder: MTLArgumentEncoder!
+    public var icbMaterialArgumentBuffer: MTLBuffer!
+    public var icbMaterialArgumentEncoder: MTLArgumentEncoder!
     
     private var uniformBuffer: MTLBuffer!
     private var vertexBuffer: MTLBuffer!
     private var indexBuffer: MTLBuffer!
-    private var instancesBuffer: MTLBuffer!
+    public var instancesBuffer: MTLBuffer!
 
     private var samplerState: MTLSamplerState?
     /// 实例纹理索引 - 纹理id
@@ -158,6 +160,54 @@ extension TexturesRenderer {
         icbMaterialArgumentBuffer = MetalContext.device.makeBuffer(length: icbMaterialArgumentEncoder.encodedLength * icbCommandMaxCount, options: .storageModeShared)
         icbMaterialArgumentBuffer.label = "Compute Textures Argument Buffer"
         self.icbMaterialArgumentEncoder = icbMaterialArgumentEncoder
+        
+        //        for index in 0..<icbCommandMaxCount {
+        //            icbMaterialArgumentEncoder.setArgumentBuffer(icbMaterialArgumentBuffer, startOffset: 0, arrayElement: index)
+        //            icbMaterialArgumentEncoder.setBuffer(materialBuffer, offset: 0, index: 0)
+        //        }
+        
+        /// 防止 GPU 报错
+//        do {
+//            let texture = TextureController.texture(filename: "container")
+//            let fragment = MetalContext.library.makeFunction(name: "instance_fragment_shader")
+//            let materialEncoder = fragment!.makeArgumentEncoder(
+//                bufferIndex: FragmentBufferIndexMaterials.index)
+//            let materialBuffer = MetalContext.device.makeBuffer(
+//              length: materialEncoder.encodedLength,
+//              options: [])
+//            materialEncoder.setArgumentBuffer(materialBuffer, offset: 0)
+//            if let texture = texture {
+//                materialEncoder.setTexture(texture, index: 0)
+//            }
+//
+//            var color: Float3 = [1, 0, 0]
+//            let address = materialEncoder.constantData(at: 1)
+//            address.copyMemory(from: &color, byteCount: MemoryLayout<Float3>.stride)
+//
+//            icbMaterialArgumentEncoder.setArgumentBuffer(icbMaterialArgumentBuffer, startOffset: 0, arrayElement: 0)
+//            icbMaterialArgumentEncoder.setBuffer(materialBuffer, offset: 0, index: 0)
+//        }
+//
+//        do {
+//            let texture = TextureController.texture(filename: "container")
+//            let fragment = MetalContext.library.makeFunction(name: "instance_fragment_shader")
+//            let materialEncoder = fragment!.makeArgumentEncoder(
+//                bufferIndex: FragmentBufferIndexMaterials.index)
+//            let materialBuffer = MetalContext.device.makeBuffer(
+//              length: materialEncoder.encodedLength,
+//              options: [])
+//            materialEncoder.setArgumentBuffer(materialBuffer, offset: 0)
+//            if let texture = texture {
+//                materialEncoder.setTexture(texture, index: 0)
+//            }
+//
+//            var color: Float3 = [1, 0, 0]
+//            let address = materialEncoder.constantData(at: 1)
+//            address.copyMemory(from: &color, byteCount: MemoryLayout<Float3>.stride)
+//
+//            icbMaterialArgumentEncoder.setArgumentBuffer(icbMaterialArgumentBuffer, startOffset: 0, arrayElement: 1)
+//            icbMaterialArgumentEncoder.setBuffer(materialBuffer, offset: 0, index: 0)
+//        }
     }
     
     private func buildVertexBuffers() {
@@ -283,14 +333,18 @@ extension TexturesRenderer: MTKViewDelegate {
         
 //        myCaptureScope?.begin()
         
+//        inFlightSemaphore.wait()
         delegate?.update()
+        
+        let commandBuffer = MetalContext.commandQueue.makeCommandBuffer()!
+        commandBuffer.label = "Frame Command Buffer"
+//        commandBuffer.addCompletedHandler { [weak self] (_) in
+////            self?.inFlightSemaphore.signal()
+//        }
         
         let instanceUniforms: [InstanceUniform] = spriteNodes.map { $0.uniform }
         checkInstanceBufferCount()
         instancesBuffer.contents().copyMemory(from: instanceUniforms, byteCount: MemoryLayout<InstanceUniform>.stride * instanceUniforms.count)
-        
-        let commandBuffer = MetalContext.commandQueue.makeCommandBuffer()!
-        commandBuffer.label = "Frame Command Buffer"
         
         let instanceCount = spriteNodes.count
         let instanceRange = 0..<instanceCount
@@ -306,7 +360,7 @@ extension TexturesRenderer: MTKViewDelegate {
         /// 渲染命令
         if instanceCount > icbCommandMaxCount {// 就需要分批绘制
             
-            
+            /// 分批绘制还是有问题，GPU 只会接受最后一次的绘制
             
             let drawCount = (instanceCount + icbCommandMaxCount - 1) / icbCommandMaxCount
             
@@ -372,26 +426,37 @@ extension TexturesRenderer: MTKViewDelegate {
                 let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor)!
                 // 因为使用的是 argument buffer 里的纹理，所以需要显示使用资源
                 renderEncoder.useResources(textures, usage: .read)
-//                if drawIndex == 0 {
-//                    renderEncoder.executeCommandsInBuffer(indirectCommandBuffer, range: 0..<1)
-//                } else {
-//                    renderEncoder.executeCommandsInBuffer(indirectCommandBuffer, range: 1..<2)
-//                }
                 renderEncoder.executeCommandsInBuffer(indirectCommandBuffer, range: 0..<instanceCount)
                 renderEncoder.endEncoding()
             }
             
         } else {
+            /// 大量物体的设置参数缓冲有性能问题
+            var textureIds: [Int] = []
             var textures: [MTLTexture] = []
             /// 把片元着色器的每个参数缓冲，设置到计算着色器上
             for (index, spriteNode) in spriteNodes.enumerated() {
+//                guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
+//                    return
+//                }
+//                blitEncoder.copy(from: spriteNode.materialBuffer, sourceOffset: 0, to: icbMaterialArgumentBuffer, destinationOffset: index * spriteNode.materialBuffer.length, size: spriteNode.materialBuffer.length)
+//                blitEncoder.endEncoding()
+                    
+                    
+//                guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
+//                    return
+//                }
+//                blitEncoder.copy(from: spriteNode.materialBuffer, sourceOffset: 0, to: icbMaterialArgumentBuffer, destinationOffset: index * icbMaterialArgumentEncoder.encodedLength, size: icbMaterialArgumentEncoder.encodedLength)
+//                blitEncoder.endEncoding()
+                
                 icbMaterialArgumentEncoder.setArgumentBuffer(icbMaterialArgumentBuffer, startOffset: 0, arrayElement: index)
                 icbMaterialArgumentEncoder.setBuffer(spriteNode.materialBuffer, offset: 0, index: 0)
-                if let texture = spriteNode.texture {
+                
+                if let textureId = spriteNode.textureId, let texture = spriteNode.texture, !textureIds.contains(textureId) {
+                    textureIds.append(textureId)
                     textures.append(texture)
                 }
             }
-            
             
             /// 使用 compute kernel 去提前计算矩阵
             let computeEncoder = commandBuffer.makeComputeCommandEncoder()
@@ -416,6 +481,12 @@ extension TexturesRenderer: MTKViewDelegate {
             // '_indirectCommandBuffer' in 'computeEncoder', but, rather, must pass it to the kernel via
             // an argument buffer which indirectly contains '_indirectCommandBuffer'.
             computeEncoder?.useResource(indirectCommandBuffer, usage: .write)
+            computeEncoder?.useResource(uniformBuffer, usage: .read)
+            computeEncoder?.useResource(instancesBuffer, usage: .read)
+            // 使用堆更快捷
+            if let heap = TextureController.heap {
+                computeEncoder?.useHeap(heap)
+            }
             
             // 获取总线程数，也就是网格数量
             let gridSize = MTLSize(width: instanceCount, height: 1, depth: 1)
@@ -434,12 +505,20 @@ extension TexturesRenderer: MTKViewDelegate {
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor)!
             // 因为使用的是 argument buffer 里的纹理，所以需要显示使用资源
             renderEncoder.useResources(textures, usage: .read)
+            // 使用堆更快捷
+            if let heap = TextureController.heap {
+                renderEncoder.useHeap(heap)
+            }
+            for (_, spriteNode) in spriteNodes.enumerated() {
+                renderEncoder.useResource(spriteNode.materialBuffer, usage: .read)
+            }
             renderEncoder.executeCommandsInBuffer(indirectCommandBuffer, range: instanceRange)
             renderEncoder.endEncoding()
         }
         
         commandBuffer.present(drawable)
         commandBuffer.commit()
+//        commandBuffer.waitUntilCompleted()
 //        myCaptureScope?.end()
     }
 }

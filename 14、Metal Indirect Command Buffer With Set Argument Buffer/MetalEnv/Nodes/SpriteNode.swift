@@ -9,7 +9,12 @@ import MetalKit
 
 class SpriteNode: NSObject {
     var uniform: InstanceUniform
-    var texture: MTLTexture? {
+    var textureId: Int? {
+        didSet {
+            texture = TextureController.getTexture(textureId)
+        }
+    }
+    private(set) var texture: MTLTexture? {
         didSet {
             updateMaterialBuffer()
         }
@@ -24,9 +29,10 @@ class SpriteNode: NSObject {
     
     private(set) var materialBuffer: MTLBuffer!// Shader buffer, 包含纹理和材质等参数
     
-    init(texture: MTLTexture?, color: Float3 = [1, 0, 0]) {
+    init(textureId: Int?, color: Float3 = [1, 0, 0]) {
         uniform = InstanceUniform(position: [0, 0, 0], scale: [100, 100, 1], rotation: [0, 0, 0], textureFrame: [0, 0, 1, 1], modelMatrix: .identity)
-        self.texture = texture
+        self.textureId = textureId
+        self.texture = TextureController.getTexture(textureId)
         super.init()
         updateMaterialBuffer()
     }
