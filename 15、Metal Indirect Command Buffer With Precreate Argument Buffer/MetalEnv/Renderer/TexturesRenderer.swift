@@ -61,43 +61,27 @@ class TexturesRenderer: NSObject {
     
     private var myCaptureScope: MTLCaptureScope?
     
-    /// 单位正方形顶点数据
-    private let vertices: [Vertex] = [
-        Vertex(position: [-0.5, 0.5, 0.0],
-               uv: [0, 1], color: [1, 0, 1]), // V0 左上
-        Vertex(position: [-0.5, -0.5, 0.0],
-               uv: [0, 0], color: [1, 0, 1]), // V1 左下
-        Vertex(position: [0.5, -0.5, 0.0],
-               uv: [1, 0], color: [1, 0, 1]), // V2 右下
-        Vertex(position: [0.5, -0.5, 0.0],
-               uv: [1, 0], color: [1, 0, 1]), // V2 右下
-        Vertex(position: [0.5, 0.5, 0.0],
-               uv: [1, 1], color: [1, 0, 1]), // V3 右上
-        Vertex(position: [-0.5, 0.5, 0.0],
-               uv: [0, 1], color: [1, 0, 1]), // V0 左上
-    ]
-    
     var spriteNodes: [SpriteNode] = []
     
     /// 单位正方形顶点数据
-//    private let vertices: [Vertex] = [
-//        Vertex(position: vector4(-0.5,  0.5, 0.0, 1.0),
-//               textureCoords: vector2(0, 1), textureIndex: 0), // V0 左上
-//        Vertex(position: vector4(-0.5, -0.5, 0.0, 1.0),
-//               textureCoords: vector2(0, 0), textureIndex: 0), // V1 左下
-//        Vertex(position: vector4(0.5, -0.5, 0.0, 1.0),
-//               textureCoords: vector2(1, 0), textureIndex: 0), // V2 右下
-//        Vertex(position: vector4(0.5,  0.5, 0.0, 1.0),
-//               textureCoords: vector2(1, 1), textureIndex: 0),  // V3 右上
-//    ]
+    private let vertices: [Vertex] = [
+        Vertex(position: [-0.5, 0.5, 0.0],
+               uv: [0, 1], color: [1, 0, 0]), // V0 左上
+        Vertex(position: [-0.5, -0.5, 0.0],
+               uv: [0, 0], color: [0, 1, 0]), // V1 左下
+        Vertex(position: [0.5, -0.5, 0.0],
+               uv: [1, 0], color: [0, 0, 1]), // V2 右下
+        Vertex(position: [0.5, 0.5, 0.0],
+               uv: [1, 1], color: [1, 1, 0]), // V3 右上
+    ]
     
-    /// 单位正方形顶点索引
-//    private var indices: [UInt16] {
-//        return [
-//            0, 2, 1,
-//            0, 3, 2
-//        ]
-//    }
+    /// 单位正方形顶点索引，这里建议使用 UInt32，UInt16 不知道为什么 Metal 识别不了
+    private var indices: [UInt32] {
+        return [
+            0, 1, 2,
+            2, 3, 0
+        ]
+    }
     
     init(size: CGSize) {
         super.init()
@@ -186,7 +170,8 @@ extension TexturesRenderer {
     
     private func buildVertexBuffers() {
         vertexBuffer = MetalContext.device.makeBuffer(bytes: vertices, length: vertices.count * MemoryLayout<Vertex>.stride, options: [])
-//        indexBuffer = MetalContext.device.makeBuffer(bytes: indices, length: indices.count * MemoryLayout<UInt16>.stride, options: [])
+        indexBuffer = MetalContext.device.makeBuffer(bytes: indices, length: indices.count * MemoryLayout<UInt32>.stride, options: [])
+        indexBuffer.label = "Index Buffer"
         
         // 参考 cocos2d，预先创建一个大的 buffer
         instancesBuffer = MetalContext.device.makeBuffer(length: instanceBufferCount * MemoryLayout<InstanceUniform>.stride, options: [])
@@ -307,7 +292,6 @@ extension TexturesRenderer: MTKViewDelegate {
         viewPortSize.y = UInt32(size.height);
         
         /// 构建 MVP
-        uniform.modelMatrix = .identity
         uniform.viewMatrix = .identity
         let projectionMatrix = Float4x4.init(orthoLeft: -Float(viewPortSize.x) / 2.0, right: Float(viewPortSize.x) / 2.0, bottom: -Float(viewPortSize.y) / 2.0, top: Float(viewPortSize.y) / 2.0, near: 0, far: 1000)
         uniform.projectionMatrix = projectionMatrix
@@ -397,7 +381,7 @@ extension TexturesRenderer: MTKViewDelegate {
                 // 设置 顶点 缓冲，只有一份单位正方形顶点数据
                 computeEncoder?.setBuffer(vertexBuffer, offset: 0, index: KernelBufferIndexVertices.index)
                 // 设置 顶点索引缓冲
-        //        computeEncoder?.setBuffer(indexBuffer, offset: 0, index: KernelBufferIndexIndices.index)
+                computeEncoder?.setBuffer(indexBuffer, offset: 0, index: KernelBufferIndexIndices.index)
                 // 设置 MVP uniform 缓冲
                 computeEncoder?.setBuffer(uniformBuffer, offset: 0, index: KernelBufferIndexUniform.index)
                 // 设置 实例化数据 缓冲
@@ -446,7 +430,7 @@ extension TexturesRenderer: MTKViewDelegate {
             // 设置 顶点 缓冲，只有一份单位正方形顶点数据
             computeEncoder?.setBuffer(vertexBuffer, offset: 0, index: KernelBufferIndexVertices.index)
             // 设置 顶点索引缓冲
-    //        computeEncoder?.setBuffer(indexBuffer, offset: 0, index: KernelBufferIndexIndices.index)
+            computeEncoder?.setBuffer(indexBuffer, offset: 0, index: KernelBufferIndexIndices.index)
             // 设置 MVP uniform 缓冲
             computeEncoder?.setBuffer(uniformBuffer, offset: 0, index: KernelBufferIndexUniform.index)
             // 设置 实例化数据 缓冲
@@ -461,6 +445,8 @@ extension TexturesRenderer: MTKViewDelegate {
             // '_indirectCommandBuffer' in 'computeEncoder', but, rather, must pass it to the kernel via
             // an argument buffer which indirectly contains '_indirectCommandBuffer'.
             computeEncoder?.useResource(indirectCommandBuffer, usage: .write)
+            computeEncoder?.useResource(vertexBuffer, usage: .read)
+            computeEncoder?.useResource(indexBuffer, usage: .read)
             computeEncoder?.useResource(uniformBuffer, usage: .read)
             computeEncoder?.useResource(instancesBuffer, usage: .read)
             // 使用堆更快捷
@@ -522,6 +508,7 @@ extension TexturesRenderer: MTKViewDelegate {
             renderEncoder.setDepthStencilState(depthStencilState)
             renderEncoder.setFrontFacing(.counterClockwise)
             renderEncoder.setCullMode(.back)
+//            renderEncoder.setTriangleFillMode(.lines)
             renderEncoder.executeCommandsInBuffer(indirectCommandBuffer, range: instanceRange)
             renderEncoder.endEncoding()
         }

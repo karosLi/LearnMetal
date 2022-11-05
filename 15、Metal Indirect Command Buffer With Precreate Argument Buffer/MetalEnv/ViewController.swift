@@ -35,19 +35,19 @@ class ViewController: UIViewController {
         metalView.delegate = renderer
         
         let textureId1 = TextureController.textureId(filename: "container")
-        let textureId2 = TextureController.textureId(filename: "awesomeface")
+        let textureId2 = TextureController.textureId(filename: "guo")
         TextureController.heap = TextureController.buildHeap()
         
         let node1 = SpriteNode(Material(textureId: textureId1));
-        node1.uniform.position = [0, 0, 1]
+        node1.uniform.position = [0, 300, 1]
         node1.uniform.scale = [500, 500, 1]
 //        node1.uniform.alpha = 0.1
+        renderer.spriteNodes.append(node1)
         
         let node2 = SpriteNode(Material(textureId: textureId2));
         node2.uniform.position = [0, -300, 0.5]
         node2.uniform.scale = [500, 500, 1]
-        
-        renderer.spriteNodes.append(node1)
+//        node2.uniform.alpha = 0.1
         renderer.spriteNodes.append(node2)
         
 //        for _ in 0..<1000 {

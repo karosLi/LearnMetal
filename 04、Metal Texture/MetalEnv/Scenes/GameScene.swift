@@ -11,7 +11,7 @@ class GameScene: Scene {
     var plane: Plane?
     
     init(device: MTLDevice) {
-        plane = Plane(device: device, imageName: "container.jpeg");
+        plane = Plane(device: device, imageName: "awesomeface.png");
         super.init()
         add(childNode: plane)
     }

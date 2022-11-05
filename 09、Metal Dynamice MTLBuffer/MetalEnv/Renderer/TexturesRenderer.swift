@@ -43,7 +43,7 @@ class TexturesRenderer: NSObject {
                textureCoords: vector2(1, 1)),  // V3 右上
     ]
     
-    private let primitiveType: MTLPrimitiveType = .triangleStrip
+    private let primitiveType: MTLPrimitiveType = .triangle
     
     /// 单位正方形顶点索引
     private var indices: [UInt16] {

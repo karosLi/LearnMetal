@@ -60,8 +60,8 @@ struct ComputeMaterial {
 };
 
 kernel void model_matrix_compute(uint instanceId [[thread_position_in_grid]],
-                                 constant Vertex *vertices [[ buffer(KernelBufferIndexVertices) ]],
-//                                 constant uint *indices [[ buffer(KernelBufferIndexIndices) ]],
+                                 device Vertex *vertices [[ buffer(KernelBufferIndexVertices) ]],
+                                 constant uint *indices [[ buffer(KernelBufferIndexIndices) ]],
                                  constant Uniform &uniform [[ buffer(KernelBufferIndexUniform) ]],
                                  device InstanceUniform *instances [[ buffer(KernelBufferIndexInstanceUniforms) ]],
                                  device ICBContainer *icb_container [[ buffer(KernelBufferIndexICBContainer) ]],
@@ -71,7 +71,7 @@ kernel void model_matrix_compute(uint instanceId [[thread_position_in_grid]],
     // device 修饰，让 instance 可以被修改
     device InstanceUniform &instance = instances[instanceId];
     ComputeMaterial material = materials[instance.materialIndex];
-    
+//    vertices[0].position = float3(-0.5, 1, 1);
     // 在原点缩放
     float4x4 scaleMatrix = scale_matrix(instance.scale);
     // 在原点旋转
@@ -101,9 +101,9 @@ kernel void model_matrix_compute(uint instanceId [[thread_position_in_grid]],
 //    METAL_FUNC void draw_indexed_primitives(primitive_type type, uint index_count, const constant T *index_buffer, uint instance_count, uint base_vertex = 0, uint base_instance = 0) thread
 //    cmd.draw_indexed_primitives(primitive_type::triangle, 6, indices, 1, 0, instanceId);
     
-    cmd.draw_primitives(primitive_type::triangle, 0, 6, 1, instanceId);
+//    cmd.draw_primitives(primitive_type::triangle, 0, 6, 1, instanceId);
     
-//    cmd.draw_indexed_primitives(primitive_type::triangle, 6, indices, 1, 0, instanceId);
+    cmd.draw_indexed_primitives(primitive_type::triangle, 6, indices, 1, 0, instanceId);
 }
 
 struct VertexIn {
@@ -139,7 +139,7 @@ vertex RasterizerData instance_vertex_shader(uint vertexID [[ vertex_id ]],
     float4x4 instanceModelMatrix = instance.modelMatrix;
     
     // 转换后的点坐标
-    float4 position = uniform.projectionMatrix * uniform.viewMatrix * uniform.modelMatrix * instanceModelMatrix * float4(vertexIn.position, 1);
+    float4 position = uniform.projectionMatrix * uniform.viewMatrix * instanceModelMatrix * float4(vertexIn.position, 1);
 //     纹理坐标
 //    float2 textureAnchor = float2(0.5, 0.5);
 //    float2 textureCoords = instance.textureFrame.xy + (textureAnchor + (rotation_matrix(instance.textureRadian) * float4(vertexIn.textureCoords - textureAnchor, 0.0, 0.0)).xy) * instance.textureFrame.zw;
@@ -177,6 +177,8 @@ fragment half4 instance_fragment_shader(const RasterizerData vertexIn [[ stage_i
       address::repeat,
       mip_filter::linear,
       max_anisotropy(8));
+    
+//    constexpr sampler texture_sampler (mag_filter::linear, min_filter::linear, t_address::clamp_to_edge,s_address::clamp_to_edge);
 
 //    device Material &material = materials[vertexIn.textureIndex];
     texture2d<float> mainTexture = material.texture;
