@@ -454,13 +454,18 @@ extension TexturesRenderer: MTKViewDelegate {
                 computeEncoder?.useHeap(heap)
             }
             
+//            var textures: [MTLTexture] = []
             for (index, var material) in materials.enumerated() {
                 let fragmentMaterialArgumentBuffer = fragmentMaterialArgumentBuffers[index]
                 let fragmentMaterialArgumentEncoder = fragmentMaterialArgumentEncoders[index]
                 fragmentMaterialArgumentEncoder.setTexture(material.texture, index: 0)
                 fragmentMaterialArgumentEncoder.constantData(at: 1).copyMemory(from: &material.color, byteCount: MemoryLayout<Float3>.stride)
                 computeEncoder?.useResource(fragmentMaterialArgumentBuffer, usage: .read)
+//                if let texture = material.texture {
+//                    textures.append(texture)
+//                }
             }
+//            computeEncoder?.useResources(textures, usage: .read)
             
             
 //            for index in 0..<5002 {

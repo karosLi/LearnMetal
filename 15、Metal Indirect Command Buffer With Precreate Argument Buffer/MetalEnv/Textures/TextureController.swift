@@ -67,19 +67,20 @@ class TextureController {
   static func loadTexture(filename: String) throws -> MTLTexture? {
     let textureLoader = MTKTextureLoader(device: MetalContext.device)
 
+      let textureLoaderOptions: [MTKTextureLoader.Option: Any] = [
+        .origin: MTKTextureLoader.Origin.bottomLeft,
+        .SRGB: false,
+        .generateMipmaps: NSNumber(value: true)
+      ]
+      
     if let texture = try? textureLoader.newTexture(
       name: filename,
       scaleFactor: 1.0,
       bundle: Bundle.main,
-      options: nil) {
+      options: textureLoaderOptions) {
       return texture
     }
-
-    let textureLoaderOptions: [MTKTextureLoader.Option: Any] = [
-      .origin: MTKTextureLoader.Origin.bottomLeft,
-      .SRGB: false,
-      .generateMipmaps: NSNumber(value: true)
-    ]
+    
     let fileExtension =
       URL(fileURLWithPath: filename).pathExtension.isEmpty ?
         "png" : nil
@@ -94,6 +95,31 @@ class TextureController {
       URL: url,
       options: textureLoaderOptions)
     return texture
+
+
+//
+//      let textureLoader = MTKTextureLoader(device: MetalContext.device)
+//      var texture: MTLTexture? = nil
+//
+//      let textureLoaderOptions: [MTKTextureLoader.Option: Any]
+//      if #available(iOS 10.0, *) {
+//          textureLoaderOptions = [MTKTextureLoader.Option.origin: MTKTextureLoader.Origin.bottomLeft]
+//      } else {
+//          textureLoaderOptions = [:]
+//      }
+//
+//      let fileExtension =
+//            URL(fileURLWithPath: filename).pathExtension.isEmpty ?
+//              "png" : nil
+//      if let textureURL = Bundle.main.url(forResource: filename, withExtension: fileExtension) {
+//          do {
+//              texture = try textureLoader.newTexture(URL: textureURL, options: textureLoaderOptions)
+//          } catch {
+//              print("texture not created")
+//          }
+//      }
+//
+//      return texture
   }
     
     static func buildHeap() -> MTLHeap? {
