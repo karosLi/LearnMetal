@@ -389,7 +389,8 @@ extension TexturesRenderer: MTKViewDelegate {
         renderEncoder.executeCommandsInBuffer(indirectCommandBuffer, range: instanceRange)
         renderEncoder.endEncoding()
         
-        commandBuffer.present(drawable)
+        /// 每帧画面显示的间隔时间 0.16s
+        commandBuffer.present(drawable, atTime: 0.16)
         commandBuffer.commit()
 //        commandBuffer.waitUntilCompleted()
 //        myCaptureScope?.end()

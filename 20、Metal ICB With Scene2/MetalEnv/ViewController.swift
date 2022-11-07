@@ -68,8 +68,8 @@ class ViewController: UIViewController {
         node3.uniform.textureFrame = Rect(x: 0, y: 0, width: 1, height: 1)
         scene.foodRenderContainer.addRenderable(node3)
         
-        /// iPhoneX 3500 可以保持 60帧
-        for _ in 0..<4000 {
+        /// iPhoneX 5000 可以保持 60帧
+        for _ in 0..<5000 {
             let node1 = SpriteNode(Material(textureId: textureId1));
             node1.uniform.position = [0, 300, 0]
             node1.uniform.scale = [500, 500, 1]
