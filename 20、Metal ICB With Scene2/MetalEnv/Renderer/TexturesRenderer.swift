@@ -8,11 +8,11 @@
 import MetalKit
 
 /// 根据游戏场景定义一个最大 icb 命令次数
-var icbMaxCommandCount = 10000
+var icbMaxCommandCount = 20000
 /// 根据游戏场景定义一个最大的纹理数
 var icbMaxMaterialCount = 1000
 /// 实例 buffer 数量，因为不能分批，所以需要和 icbMaxCommandCount 保持一致
-var instanceBufferCount = 10000
+var instanceBufferCount = 20000
 
 protocol TexturesRendererProtocol: NSObject {
     func update()
@@ -338,12 +338,6 @@ extension TexturesRenderer: MTKViewDelegate {
         let instanceRange = 0..<instanceCount
         let icbCommandRange = 0..<icbMaxCommandCount
         
-        /// 重置 indirect command buffer
-        let resetBlitEncoder = commandBuffer.makeBlitCommandEncoder()
-        resetBlitEncoder?.label = "Reset ICB Blit Encoder"
-        resetBlitEncoder?.resetCommandsInBuffer(indirectCommandBuffer, range: icbCommandRange)
-        resetBlitEncoder?.endEncoding()
-        
         /// 使用 compute kernel 去提前计算矩阵
         let computeEncoder = commandBuffer.makeComputeCommandEncoder()
         computeEncoder?.label = "Instance Matrix Kernel"
@@ -388,12 +382,6 @@ extension TexturesRenderer: MTKViewDelegate {
         let threadsPerThreadgroup = MTLSize(width: threadExecutionWidth, height: 1, depth: 1)
         computeEncoder?.dispatchThreads(gridSize, threadsPerThreadgroup: threadsPerThreadgroup)
         computeEncoder?.endEncoding()
-        
-        /// 优化 indirect command buffer
-        let optimizeBlitEncoder = commandBuffer.makeBlitCommandEncoder()
-        optimizeBlitEncoder?.label = "Optimize ICB Blit Encoder"
-        optimizeBlitEncoder?.optimizeIndirectCommandBuffer(indirectCommandBuffer, range: icbCommandRange)
-        optimizeBlitEncoder?.endEncoding()
         
         let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor)!
         renderEncoder.setDepthStencilState(depthStencilState)
