@@ -7,8 +7,8 @@
 
 import MetalKit
 
-var icbMaxCommandCount = 2
-var icbMaxMaterialCount = 2
+var icbMaxCommandCount = 10000
+var icbMaxMaterialCount = 1000
 var instanceBufferCount = 65535
 
 protocol TexturesRendererProtocol: NSObject {
