@@ -7,8 +7,11 @@
 
 import MetalKit
 
+/// 根据游戏场景定义一个最大 icb 命令次数
 var icbMaxCommandCount = 10000
+/// 根据游戏场景定义一个最大的纹理数
 var icbMaxMaterialCount = 1000
+/// 实例 buffer 数量，按理来说要跟 icbMaxCommandCount 保持一致，定义一个 65535 也没有什么问题
 var instanceBufferCount = 65535
 
 protocol TexturesRendererProtocol: NSObject {
