@@ -29,17 +29,15 @@ typedef struct {
     vector_float3 scale;
     /// 实例旋转弧度
     vector_float3 rotation;
-    /// 实例纹理坐标
-    vector_float4 textureFrame;
+    /// 锚点，默认是 (0.5, 0.5), 表示单位正方形的中心
+    vector_float2 anchor;
     /// 透明度
     float alpha;
-//
-//
-//
-//    // 用于丝带渲染
-//    GLKVector4 stripPoints;// 丝带上下两个数据节点的位置，xy 是顶部数据节点的位置，zw 是底部数据节点的位置
-//    GLKVector2 stripRadians;// 丝带上下两个数据节点的旋转弧度，x 是顶部数据节点的旋转弧度，y 是底部数据节点的旋转弧度
-    
+    /// 纹理平铺次数，（水平方向和垂直方向纹理重复次数，默认应该是 (1,1)）
+    vector_float2 tiling;
+    /// 单位正方形的上边中心点和底边中心点的旋转弧度，用这种方式在 GPU 侧修改单位正方形的顶点坐标从而达到丝带的效果，默认应该 (0, 0)
+    vector_float2 stripRadians;
+
     /// CPU 侧计算出材质索引
     int materialIndex;
     /// GPU 侧计算出实例模型矩阵

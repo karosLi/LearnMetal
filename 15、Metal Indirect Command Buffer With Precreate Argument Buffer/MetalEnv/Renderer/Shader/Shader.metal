@@ -116,7 +116,6 @@ struct RasterizerData {
     float4 position [[ position ]];
     float2 textureCoords;
     float alpha;
-    int textureIndex;
 };
 
 vertex RasterizerData instance_vertex_shader(uint vertexID [[ vertex_id ]],
@@ -140,10 +139,7 @@ vertex RasterizerData instance_vertex_shader(uint vertexID [[ vertex_id ]],
     
     // 转换后的点坐标
     float4 position = uniform.projectionMatrix * uniform.viewMatrix * instanceModelMatrix * float4(vertexIn.position, 1);
-//     纹理坐标
-//    float2 textureAnchor = float2(0.5, 0.5);
-//    float2 textureCoords = instance.textureFrame.xy + (textureAnchor + (rotation_matrix(instance.textureRadian) * float4(vertexIn.textureCoords - textureAnchor, 0.0, 0.0)).xy) * instance.textureFrame.zw;
-//
+    
     RasterizerData vertexOut;
     vertexOut.position = position;
     vertexOut.textureCoords = vertexIn.uv;
@@ -164,9 +160,6 @@ struct FragmentSampler {
 fragment half4 instance_fragment_shader(const RasterizerData vertexIn [[ stage_in ]],
 //                                        sampler sampler2d [[ sampler(0) ]],
                                         constant FragmentMaterial &material [[ buffer(FragmentBufferIndexMaterial) ]]
-//                                        ,
-//////                                        ,
-//                                        constant FragmentSampler &fragmentSampler [[ buffer(FragmentBufferIndexSampler) ]]
                                         ) {
 //    constexpr sampler texture_sampler (mag_filter::linear,
 //                                        min_filter::linear,
@@ -179,12 +172,11 @@ fragment half4 instance_fragment_shader(const RasterizerData vertexIn [[ stage_i
       max_anisotropy(8));
     
 //    constexpr sampler texture_sampler (mag_filter::linear, min_filter::linear, t_address::clamp_to_edge,s_address::clamp_to_edge);
-
-//    device Material &material = materials[vertexIn.textureIndex];
+    
     texture2d<float> mainTexture = material.texture;
 //
     if (!is_null_texture(mainTexture)) {
-        float4 color = mainTexture.sample(texture_sampler, vertexIn.textureCoords);
+        float4 color = mainTexture.sample(texture_sampler, vertexIn.textureCoords * float2(1, 1));
         return half4(color.r, color.g, color.b, color.a) * vertexIn.alpha;
 //        return half4(1, 1, 0, 1);
     }
