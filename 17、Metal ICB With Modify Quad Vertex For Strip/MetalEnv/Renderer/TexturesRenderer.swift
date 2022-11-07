@@ -7,8 +7,8 @@
 
 import MetalKit
 
-var icbMaxCommandCount = 10000
-var icbMaxMaterialCount = 1000
+var icbMaxCommandCount = 2
+var icbMaxMaterialCount = 2
 var instanceBufferCount = 65535
 
 protocol TexturesRendererProtocol: NSObject {
@@ -333,10 +333,66 @@ extension TexturesRenderer: MTKViewDelegate {
         /// 渲染命令
         if instanceCount > icbMaxCommandCount {// 就需要分批绘制
             
+            /// 使用 compute kernel 去提前计算矩阵
+            let computeEncoder = commandBuffer.makeComputeCommandEncoder()
+            computeEncoder?.label = "Instance Matrix Kernel"
+            
+            computeEncoder?.setComputePipelineState(computePipelineState)
+            
+            // 设置 顶点索引缓冲
+            computeEncoder?.setBuffer(indexBuffer, offset: 0, index: KernelBufferIndexIndices.index)
+            // 设置 MVP uniform 缓冲
+            computeEncoder?.setBuffer(uniformBuffer, offset: 0, index: KernelBufferIndexUniform.index)
+            // 设置 实例化数据 缓冲
+            computeEncoder?.setBuffer(instancesBuffer, offset: 0, index: KernelBufferIndexInstanceUniforms.index)
+            // 设置 icb 参数 缓冲
+            computeEncoder?.setBuffer(icbArgumentBuffer, offset: 0, index: KernelBufferIndexICBContainer.index)
+            // 设置 纹理 参数 缓冲
+            computeEncoder?.setBuffer(icbMaterialArgumentBuffer, offset: 0, index: KernelBufferIndexTextures.index)
+            
+            // Call useResource on '_indirectCommandBuffer' which indicates to Metal that the kernel will
+            // access '_indirectCommandBuffer'.  It is necessary because the app cannot directly set
+            // '_indirectCommandBuffer' in 'computeEncoder', but, rather, must pass it to the kernel via
+            // an argument buffer which indirectly contains '_indirectCommandBuffer'.
+            computeEncoder?.useResource(indirectCommandBuffer, usage: .write)
+            computeEncoder?.useResource(indexBuffer, usage: .read)
+            computeEncoder?.useResource(uniformBuffer, usage: .read)
+            computeEncoder?.useResource(instancesBuffer, usage: .read)
+            // 使用堆更快捷
+            if let heap = TextureController.heap {
+                computeEncoder?.useHeap(heap)
+            }
+            
+            for (index, var material) in materials.enumerated() {
+                let fragmentMaterialArgumentBuffer = fragmentMaterialArgumentBuffers[index]
+                let fragmentMaterialArgumentEncoder = fragmentMaterialArgumentEncoders[index]
+                fragmentMaterialArgumentEncoder.setTexture(material.texture, index: 0)
+                fragmentMaterialArgumentEncoder.constantData(at: 1).copyMemory(from: &material.color, byteCount: MemoryLayout<Float3>.stride)
+                computeEncoder?.useResource(fragmentMaterialArgumentBuffer, usage: .read)
+            }
+            
+            // 获取总线程数，也就是网格数量
+            let gridSize = MTLSize(width: instanceCount, height: 1, depth: 1)
+            // 获取线程并发数量并确定单个线程组里线程数
+            let threadExecutionWidth = computePipelineState.threadExecutionWidth
+            let threadsPerThreadgroup = MTLSize(width: threadExecutionWidth, height: 1, depth: 1)
+            computeEncoder?.dispatchThreads(gridSize, threadsPerThreadgroup: threadsPerThreadgroup)
+            computeEncoder?.endEncoding()
+            
+            /// 优化 indirect command buffer
+            let optimizeBlitEncoder = commandBuffer.makeBlitCommandEncoder()
+            optimizeBlitEncoder?.label = "Optimize ICB Blit Encoder"
+            optimizeBlitEncoder?.optimizeIndirectCommandBuffer(indirectCommandBuffer, range: icbCommandRange)
+            optimizeBlitEncoder?.endEncoding()
+            
+            let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor)!
+            renderEncoder.setDepthStencilState(depthStencilState)
+            renderEncoder.setFrontFacing(.counterClockwise)
+            renderEncoder.setCullMode(.back)
+//            renderEncoder.setTriangleFillMode(.lines)
+            
             /// 分批绘制还是有问题，GPU 只会接受最后一次的绘制
-            
             let drawCount = (instanceCount + icbMaxCommandCount - 1) / icbMaxCommandCount
-            
             for drawIndex in 0..<drawCount {
                 let startSpriteIndex = drawIndex * icbMaxCommandCount
                 var endSpriteIndex = startSpriteIndex + icbMaxCommandCount
@@ -344,63 +400,10 @@ extension TexturesRenderer: MTKViewDelegate {
                     endSpriteIndex = instanceCount
                 }
                 
-                /// 把片元着色器的每个参数缓冲，设置到计算着色器上
-                var textures: [MTLTexture] = []
-                let spriteRange = startSpriteIndex..<endSpriteIndex
-                var instanceCount = 0
-                for spriteIndex in spriteRange {
-//                    let spriteNode = spriteNodes[spriteIndex]
-//                    icbMaterialArgumentEncoder.setArgumentBuffer(icbMaterialArgumentBuffer, startOffset: 0, arrayElement: instanceCount)
-//                    icbMaterialArgumentEncoder.setBuffer(spriteNode.materialBuffer, offset: 0, index: 0)
-//                    if let texture = spriteNode.texture {
-//                        textures.append(texture)
-//                    }
-                    instanceCount += 1
-                }
-                
-                /// 使用 compute kernel 去提前计算矩阵
-                let computeEncoder = commandBuffer.makeComputeCommandEncoder()
-                computeEncoder?.label = "Instance Matrix Kernel"
-                computeEncoder?.setComputePipelineState(computePipelineState)
-                
-                // 设置 顶点索引缓冲
-                computeEncoder?.setBuffer(indexBuffer, offset: 0, index: KernelBufferIndexIndices.index)
-                // 设置 MVP uniform 缓冲
-                computeEncoder?.setBuffer(uniformBuffer, offset: 0, index: KernelBufferIndexUniform.index)
-                // 设置 实例化数据 缓冲
-                computeEncoder?.setBuffer(instancesBuffer, offset: 0, index: KernelBufferIndexInstanceUniforms.index)
-                // 设置 icb 参数 缓冲
-                computeEncoder?.setBuffer(icbArgumentBuffer, offset: 0, index: KernelBufferIndexICBContainer.index)
-                // 设置 纹理 参数 缓冲
-                computeEncoder?.setBuffer(icbMaterialArgumentBuffer, offset: 0, index: KernelBufferIndexTextures.index)
-                
-                // Call useResource on '_indirectCommandBuffer' which indicates to Metal that the kernel will
-                // access '_indirectCommandBuffer'.  It is necessary because the app cannot directly set
-                // '_indirectCommandBuffer' in 'computeEncoder', but, rather, must pass it to the kernel via
-                // an argument buffer which indirectly contains '_indirectCommandBuffer'.
-                computeEncoder?.useResource(indirectCommandBuffer, usage: .write)
-                
-                // 获取总线程数，也就是网格数量
-                let gridSize = MTLSize(width: 1, height: 1, depth: 1)
-                // 获取线程并发数量并确定单个线程组里线程数
-                let threadExecutionWidth = computePipelineState.threadExecutionWidth
-                let threadsPerThreadgroup = MTLSize(width: threadExecutionWidth, height: 1, depth: 1)
-                computeEncoder?.dispatchThreads(gridSize, threadsPerThreadgroup: threadsPerThreadgroup)
-                computeEncoder?.endEncoding()
-                
-                /// 优化 indirect command buffer
-                let optimizeBlitEncoder = commandBuffer.makeBlitCommandEncoder()
-                optimizeBlitEncoder?.label = "Optimize ICB Blit Encoder"
-                optimizeBlitEncoder?.optimizeIndirectCommandBuffer(indirectCommandBuffer, range: icbCommandRange)
-                optimizeBlitEncoder?.endEncoding()
-                
-                let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor)!
-                // 因为使用的是 argument buffer 里的纹理，所以需要显示使用资源
-                renderEncoder.useResources(textures, usage: .read)
-                renderEncoder.executeCommandsInBuffer(indirectCommandBuffer, range: 0..<instanceCount)
-                renderEncoder.endEncoding()
+                renderEncoder.executeCommandsInBuffer(indirectCommandBuffer, range: 0..<2)
             }
             
+            renderEncoder.endEncoding()
         } else {
             
             
@@ -434,46 +437,13 @@ extension TexturesRenderer: MTKViewDelegate {
                 computeEncoder?.useHeap(heap)
             }
             
-//            var textures: [MTLTexture] = []
             for (index, var material) in materials.enumerated() {
                 let fragmentMaterialArgumentBuffer = fragmentMaterialArgumentBuffers[index]
                 let fragmentMaterialArgumentEncoder = fragmentMaterialArgumentEncoders[index]
                 fragmentMaterialArgumentEncoder.setTexture(material.texture, index: 0)
                 fragmentMaterialArgumentEncoder.constantData(at: 1).copyMemory(from: &material.color, byteCount: MemoryLayout<Float3>.stride)
                 computeEncoder?.useResource(fragmentMaterialArgumentBuffer, usage: .read)
-//                if let texture = material.texture {
-//                    textures.append(texture)
-//                }
             }
-//            computeEncoder?.useResources(textures, usage: .read)
-            
-            
-//            for index in 0..<5002 {
-//                let spriteNode = spriteNodes[index]
-//                let fragmentMaterialArgumentBuffer = fragmentMaterialArgumentBuffers[index]
-//                let fragmentMaterialArgumentEncoder = fragmentMaterialArgumentEncoders[index]
-//                fragmentMaterialArgumentEncoder.setTexture(spriteNode.material.texture, index: 0)
-//                fragmentMaterialArgumentEncoder.constantData(at: 1).copyMemory(from: &spriteNode.material.color, byteCount: MemoryLayout<Int>.stride)
-//                computeEncoder?.useResource(fragmentMaterialArgumentBuffer, usage: .read)
-//            }
-            
-//            var textureIds: [Int] = []
-//            var textures: [MTLTexture] = []
-////            把片元着色器的每个参数缓冲，设置到计算着色器上
-//            for (index, spriteNode) in spriteNodes.enumerated() {
-//                let fragmentMaterialArgumentBuffer = fragmentMaterialArgumentBuffers[index]
-//                let fragmentMaterialArgumentEncoder = fragmentMaterialArgumentEncoders[index]
-//                fragmentMaterialArgumentEncoder.setTexture(spriteNode.material.texture, index: 0)
-//                fragmentMaterialArgumentEncoder.constantData(at: 1).copyMemory(from: &spriteNode.material.color, byteCount: MemoryLayout<Int>.stride)
-//                computeEncoder?.useResource(fragmentMaterialArgumentBuffer, usage: .read)
-//
-////                if let textureId = spriteNode.textureId, let texture = spriteNode.texture, !textureIds.contains(textureId) {
-////                    textureIds.append(textureId)
-////                    textures.append(texture)
-////                }
-//            }
-            
-            
             
             // 获取总线程数，也就是网格数量
             let gridSize = MTLSize(width: instanceCount, height: 1, depth: 1)

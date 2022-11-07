@@ -58,6 +58,18 @@ class ViewController: UIViewController {
 //        node2.uniform.stripRadians = [0.45, 0.45]
         renderer.spriteNodes.append(node2)
         
+        let node3 = SpriteNode(Material(textureId: textureId1));
+        node3.uniform.position = [-100, 300, 1]
+        node3.uniform.scale = [500, 500, 1]
+//        node1.uniform.alpha = 0.1
+        node3.uniform.anchor = [0.5, 0.5]
+//        node1.uniform.tiling = [2, 2]
+        
+//        node1.uniform.rotation = [0, 0, 0.45]
+//        node1.uniform.stripRadians = [0.45, 0.8]
+        node3.uniform.textureFrame = Rect(x: 0, y: 0, width: 1, height: 1)
+        renderer.spriteNodes.append(node1)
+        
         /// iPhoneX 3500 可以保持 60帧
 //        for _ in 0..<3500 {
 //            let node1 = SpriteNode(Material(textureId: textureId1));
