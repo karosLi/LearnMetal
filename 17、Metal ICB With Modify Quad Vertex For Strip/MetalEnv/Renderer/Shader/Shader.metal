@@ -60,7 +60,6 @@ struct ComputeMaterial {
 };
 
 kernel void model_matrix_compute(uint instanceId [[thread_position_in_grid]],
-                                 device Vertex *vertices [[ buffer(KernelBufferIndexVertices) ]],
                                  constant uint *indices [[ buffer(KernelBufferIndexIndices) ]],
                                  constant Uniform &uniform [[ buffer(KernelBufferIndexUniform) ]],
                                  device InstanceUniform *instances [[ buffer(KernelBufferIndexInstanceUniforms) ]],

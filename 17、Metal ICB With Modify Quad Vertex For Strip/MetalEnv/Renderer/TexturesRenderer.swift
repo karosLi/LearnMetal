@@ -46,7 +46,6 @@ class TexturesRenderer: NSObject {
     private var fragmentMaterialArgumentBuffers: [MTLBuffer] = []
     
     private var uniformBuffer: MTLBuffer!
-    private var vertexBuffer: MTLBuffer!
     private var indexBuffer: MTLBuffer!
     public var instancesBuffer: MTLBuffer!
 
@@ -62,18 +61,6 @@ class TexturesRenderer: NSObject {
     private var myCaptureScope: MTLCaptureScope?
     
     var spriteNodes: [SpriteNode] = []
-    
-    /// 单位正方形顶点数据
-    private let vertices: [Vertex] = [
-        Vertex(position: [-0.5, -0.5, 0.0],
-               uv: [0, 0], color: [0, 1, 0]), // V0 左下
-        Vertex(position: [0.5, -0.5, 0.0],
-               uv: [1, 0], color: [0, 0, 1]), // V1 右下
-        Vertex(position: [-0.5, 0.5, 0.0],
-               uv: [0, 1], color: [1, 0, 0]), // V2 左上
-        Vertex(position: [0.5, 0.5, 0.0],
-               uv: [1, 1], color: [1, 1, 0]), // V3 右上
-    ]
     
     /// 单位正方形顶点索引，这里建议使用 UInt32，UInt16 不知道为什么 Metal 识别不了
     private var indices: [UInt32] {
@@ -169,7 +156,6 @@ extension TexturesRenderer {
     }
     
     private func buildVertexBuffers() {
-        vertexBuffer = MetalContext.device.makeBuffer(bytes: vertices, length: vertices.count * MemoryLayout<Vertex>.stride, options: [])
         indexBuffer = MetalContext.device.makeBuffer(bytes: indices, length: indices.count * MemoryLayout<UInt32>.stride, options: [])
         indexBuffer.label = "Index Buffer"
         
@@ -378,8 +364,6 @@ extension TexturesRenderer: MTKViewDelegate {
                 computeEncoder?.label = "Instance Matrix Kernel"
                 computeEncoder?.setComputePipelineState(computePipelineState)
                 
-                // 设置 顶点 缓冲，只有一份单位正方形顶点数据
-                computeEncoder?.setBuffer(vertexBuffer, offset: 0, index: KernelBufferIndexVertices.index)
                 // 设置 顶点索引缓冲
                 computeEncoder?.setBuffer(indexBuffer, offset: 0, index: KernelBufferIndexIndices.index)
                 // 设置 MVP uniform 缓冲
@@ -427,8 +411,6 @@ extension TexturesRenderer: MTKViewDelegate {
             
             computeEncoder?.setComputePipelineState(computePipelineState)
             
-            // 设置 顶点 缓冲，只有一份单位正方形顶点数据
-            computeEncoder?.setBuffer(vertexBuffer, offset: 0, index: KernelBufferIndexVertices.index)
             // 设置 顶点索引缓冲
             computeEncoder?.setBuffer(indexBuffer, offset: 0, index: KernelBufferIndexIndices.index)
             // 设置 MVP uniform 缓冲
@@ -445,7 +427,6 @@ extension TexturesRenderer: MTKViewDelegate {
             // '_indirectCommandBuffer' in 'computeEncoder', but, rather, must pass it to the kernel via
             // an argument buffer which indirectly contains '_indirectCommandBuffer'.
             computeEncoder?.useResource(indirectCommandBuffer, usage: .write)
-            computeEncoder?.useResource(vertexBuffer, usage: .read)
             computeEncoder?.useResource(indexBuffer, usage: .read)
             computeEncoder?.useResource(uniformBuffer, usage: .read)
             computeEncoder?.useResource(instancesBuffer, usage: .read)
