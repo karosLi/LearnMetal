@@ -10,7 +10,7 @@ import MetalKit
 /// 根据游戏场景定义一个最大 icb 命令次数
 var icbMaxCommandCount = 20000
 /// 根据游戏场景定义一个最大的纹理数
-var icbMaxMaterialCount = 1000
+var icbMaxMaterialCount = 2000
 /// 实例 buffer 数量，因为不能分批，所以需要和 icbMaxCommandCount 保持一致
 var instanceBufferCount = 20000
 
@@ -390,7 +390,7 @@ extension TexturesRenderer: MTKViewDelegate {
         renderEncoder.endEncoding()
         
         /// 每帧画面显示的间隔时间 0.16s
-        commandBuffer.present(drawable, atTime: 0.16)
+        commandBuffer.present(drawable, atTime: 1.0/Double(view.preferredFramesPerSecond))
         commandBuffer.commit()
 //        commandBuffer.waitUntilCompleted()
 //        myCaptureScope?.end()
