@@ -327,6 +327,10 @@ extension TexturesRenderer: MTKViewDelegate {
         instancesBuffer.contents().copyMemory(from: instanceUniforms, byteCount: MemoryLayout<InstanceUniform>.stride * instanceUniforms.count)
         
         let instanceCount = renderables.count
+        if instanceCount == 0 {
+            return
+        }
+        
         let instanceRange = 0..<instanceCount
         let icbCommandRange = 0..<icbMaxCommandCount
         
