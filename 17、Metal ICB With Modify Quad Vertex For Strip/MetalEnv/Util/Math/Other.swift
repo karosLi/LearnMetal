@@ -7,6 +7,25 @@
 
 // Rect
 public struct Rect {
+    public var x: Float = 0
+    public var y: Float = 0
+    public var width: Float = 0
+    public var height: Float = 0
+    
+    public init(x: Float, y: Float, width: Float, height: Float) {
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+    }
+}
+
+extension Rect: Equatable { }
+extension Rect: Hashable { }
+extension Rect: Codable { }
+
+// ORect
+public struct ORect {
     public var left: Float = 0
     public var right: Float = 0
     public var bottom: Float = 0
@@ -20,9 +39,9 @@ public struct Rect {
     }
 }
 
-extension Rect: Equatable { }
-extension Rect: Hashable { }
-extension Rect: Codable { }
+extension ORect: Equatable { }
+extension ORect: Hashable { }
+extension ORect: Codable { }
 
 // Bounds
 public struct Bounds2 {

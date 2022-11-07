@@ -212,12 +212,12 @@ extension Float4x4 {
     
     /// 正交投影矩阵
     public init(orthoLeft left: Float, right: Float, bottom: Float, top: Float, near: Float, far: Float) {
-        let rect = Rect(left: left, right: right, bottom: bottom, top: top)
+        let rect = ORect(left: left, right: right, bottom: bottom, top: top)
         self.init(orthographic: rect, near: near, far: far)
     }
     
     /// 正交投影矩阵
-    public init(orthographic rect: Rect, near: Float, far: Float) {
+    public init(orthographic rect: ORect, near: Float, far: Float) {
         let c0 = Float4(2 / (rect.right - rect.left), 0, 0, 0)
         let c1 = Float4(0, 2 / (rect.top - rect.bottom), 0, 0)
         let c2 = Float4(0, 0, 1 / (far - near), 0)

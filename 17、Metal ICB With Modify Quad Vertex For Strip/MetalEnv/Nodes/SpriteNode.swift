@@ -29,6 +29,20 @@ extension Material: Equatable {
     }
 }
 
+extension InstanceUniform {
+    var textureFrame: Rect {
+        set {
+            bottomLeftUV = [newValue.x, newValue.y]
+            bottomRightUV = [newValue.x + newValue.width, newValue.y]
+            topLeftUV = [newValue.x, newValue.y + newValue.height]
+            topRightUV = [newValue.x + newValue.width, newValue.y + newValue.height]
+        }
+        get {
+            return Rect(x: bottomLeftUV.x, y: bottomLeftUV.y, width: topRightUV.x - bottomLeftUV.x, height: topRightUV.y - bottomLeftUV.y)
+        }
+    }
+}
+
 class SpriteNode: NSObject {
     var uniform: InstanceUniform
     var material: Material = Material(textureId: nil, color: [1, 0, 0])
