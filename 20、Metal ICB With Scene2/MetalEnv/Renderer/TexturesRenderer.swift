@@ -321,7 +321,6 @@ extension TexturesRenderer: MTKViewDelegate {
                         renderable.uniform.materialIndex = Int32(materials.count)
                         materials.append(renderable.material)
                     }
-                    
                     instanceUniforms.append(renderable.uniform)
                 }
             }
@@ -336,7 +335,6 @@ extension TexturesRenderer: MTKViewDelegate {
         }
         
         let instanceRange = 0..<instanceCount
-        let icbCommandRange = 0..<icbMaxCommandCount
         
         /// 使用 compute kernel 去提前计算矩阵
         let computeEncoder = commandBuffer.makeComputeCommandEncoder()
