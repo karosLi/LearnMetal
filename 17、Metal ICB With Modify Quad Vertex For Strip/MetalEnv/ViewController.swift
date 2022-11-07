@@ -57,12 +57,12 @@ class ViewController: UIViewController {
 //        node2.uniform.stripRadians = [0.45, 0.45]
         renderer.spriteNodes.append(node2)
 
-//        for _ in 0..<3000 {
-//            let node1 = SpriteNode(Material(textureId: textureId1));
-//            node1.uniform.position = [0, 300, 0]
-//            node1.uniform.scale = [500, 500, 1]
-//            renderer.spriteNodes.append(node1)
-//        }
+        for _ in 0..<3000 {
+            let node1 = SpriteNode(Material(textureId: textureId1));
+            node1.uniform.position = [0, 300, 0]
+            node1.uniform.scale = [500, 500, 1]
+            renderer.spriteNodes.append(node1)
+        }
     }
 }
 

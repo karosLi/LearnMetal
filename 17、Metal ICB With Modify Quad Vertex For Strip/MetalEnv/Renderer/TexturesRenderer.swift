@@ -250,11 +250,11 @@ extension TexturesRenderer {
         drawCount = 0
     }
     
-    private func checkInstanceBufferCount() {
+    private func checkInstanceBufferCount(_ instanceUniformsCount: Int) {
         guard let existInstancesBuffer = instancesBuffer else { return }
         
         // 如果定义的 buffer 的长度小于实例数据长度，动态扩容并创建一个新的 MTLBuffer，并把实例数据拷贝到 MTLBuffer里，这是参考 SDL 里的做法
-        let instanceCount = spriteNodes.count
+        let instanceCount = instanceUniformsCount
         if instanceBufferCount < instanceCount {
             var count = instanceBufferCount
             count = count + count / 2
@@ -317,7 +317,7 @@ extension TexturesRenderer: MTKViewDelegate {
         }
         
         let instanceUniforms: [InstanceUniform] = spriteNodes.map { $0.uniform }
-        checkInstanceBufferCount()
+        checkInstanceBufferCount(instanceUniforms.count)
         instancesBuffer.contents().copyMemory(from: instanceUniforms, byteCount: MemoryLayout<InstanceUniform>.stride * instanceUniforms.count)
         
         let instanceCount = spriteNodes.count
