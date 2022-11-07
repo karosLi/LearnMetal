@@ -71,10 +71,12 @@ kernel void model_matrix_compute(uint instanceId [[thread_position_in_grid]],
     // device 修饰，让 instance 可以被修改
     device InstanceUniform &instance = instances[instanceId];
     ComputeMaterial material = materials[instance.materialIndex];
-    vertices[0].uv = instance.bottomLeftUV;
-    vertices[1].uv = instance.bottomRightUV;
-    vertices[2].uv = instance.topLeftUV;
-    vertices[3].uv = instance.topRightUV;
+    
+    // 修改纹理
+    instance.vertices[0].uv = instance.bottomLeftUV;
+    instance.vertices[1].uv = instance.bottomRightUV;
+    instance.vertices[2].uv = instance.topLeftUV;
+    instance.vertices[3].uv = instance.topRightUV;
     
     // 为了处理丝带皮肤
     if (instance.stripRadians.x > 0 ||instance.stripRadians.y > 0 ) {
@@ -91,10 +93,11 @@ kernel void model_matrix_compute(uint instanceId [[thread_position_in_grid]],
         half2 topRightVertice = topCenter + topCenterToTopRightVector;
         half2 topLeftVertice = topCenter - topCenterToTopRightVector;
         
-        vertices[0].position.xy = float2(bottomLeftVertice.x, bottomLeftVertice.y);
-        vertices[1].position.xy = float2(bottomRightVertice.x, bottomRightVertice.y);
-        vertices[2].position.xy = float2(topLeftVertice.x, topLeftVertice.y);
-        vertices[3].position.xy = float2(topRightVertice.x, topRightVertice.y);
+        // 修改顶点数据
+        instance.vertices[0].position.xy = float2(bottomLeftVertice.x, bottomLeftVertice.y);
+        instance.vertices[1].position.xy = float2(bottomRightVertice.x, bottomRightVertice.y);
+        instance.vertices[2].position.xy = float2(topLeftVertice.x, topLeftVertice.y);
+        instance.vertices[3].position.xy = float2(topRightVertice.x, topRightVertice.y);
         
     //    vertices[0].position = float3(-0.5, -1, 0);
     }
@@ -117,7 +120,7 @@ kernel void model_matrix_compute(uint instanceId [[thread_position_in_grid]],
     
     cmd.set_render_pipeline_state(icb_container->renderPipelineState);
     // Set the buffers and add a draw command.
-    cmd.set_vertex_buffer(vertices, VertexBufferIndexVertices);
+    cmd.set_vertex_buffer(instance.vertices, VertexBufferIndexVertices);
     cmd.set_vertex_buffer(&uniform, VertexBufferIndexUniform);
     cmd.set_vertex_buffer(instances, VertexBufferIndexInstanceUniforms);
     

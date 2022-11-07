@@ -46,7 +46,7 @@ class ViewController: UIViewController {
 //        node1.uniform.tiling = [2, 2]
         
 //        node1.uniform.rotation = [0, 0, 0.45]
-        node1.uniform.stripRadians = [0, 0]
+        node1.uniform.stripRadians = [0.45, 0.8]
         renderer.spriteNodes.append(node1)
         
         let node2 = SpriteNode(Material(textureId: textureId2));
@@ -54,7 +54,7 @@ class ViewController: UIViewController {
         node2.uniform.scale = [500, 500, 1]
 //        node2.uniform.alpha = 0.1
 //        node2.uniform.tiling = [2, 2]
-        node2.uniform.stripRadians = [0.45, 0.45]
+//        node2.uniform.stripRadians = [0.45, 0.45]
         renderer.spriteNodes.append(node2)
         
 //        for _ in 0..<1000 {

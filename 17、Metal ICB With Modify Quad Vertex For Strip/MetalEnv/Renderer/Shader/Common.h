@@ -45,11 +45,14 @@ typedef struct {
     vector_float2 tiling;
     /// 单位正方形的底边中心点和上边中心点的旋转弧度，用这种方式在 GPU 侧修改单位正方形的顶点坐标从而达到丝带的效果，默认应该 (0, 0)，x: 底边中心点的旋转弧度，y: 上边中心点的旋转弧度
     vector_float2 stripRadians;
-
+    
     /// CPU 侧计算出材质索引
     int materialIndex;
     /// GPU 侧计算出实例模型矩阵
     matrix_float4x4 modelMatrix;
+    
+    /// 顶点数据，每个实例都需要一份，因为需要修改纹理坐标和顶点数据
+    Vertex vertices[4];
 } InstanceUniform;
 
 
