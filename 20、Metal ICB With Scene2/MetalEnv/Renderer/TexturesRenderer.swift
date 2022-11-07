@@ -310,8 +310,6 @@ extension TexturesRenderer: MTKViewDelegate {
 //            self?.inFlightSemaphore.signal()
 //        }
         
-        
-        var pointer = instancesBuffer.contents().bindMemory(to: InstanceUniform.self, capacity: instanceBufferCount)
         var instanceUniforms: [InstanceUniform] = []
         var materials: [Material] = []
         for renderContainer in scene.renderContainers {
@@ -324,28 +322,13 @@ extension TexturesRenderer: MTKViewDelegate {
                         materials.append(renderable.material)
                     }
                     
-//                    instanceUniforms.append(renderable.uniform)
-                    
-                    pointer.pointee.position = renderable.uniform.position
-                    pointer.pointee.scale = renderable.uniform.scale
-                    pointer.pointee.rotation = renderable.uniform.rotation
-                    pointer.pointee.anchor = renderable.uniform.anchor
-                    pointer.pointee.alpha = renderable.uniform.alpha
-                    pointer.pointee.bottomLeftUV = renderable.uniform.bottomLeftUV
-                    pointer.pointee.bottomRightUV = renderable.uniform.bottomRightUV
-                    pointer.pointee.topLeftUV = renderable.uniform.topLeftUV
-                    pointer.pointee.topRightUV = renderable.uniform.topRightUV
-                    pointer.pointee.tiling = renderable.uniform.tiling
-                    pointer.pointee.stripRadians = renderable.uniform.stripRadians
-                    pointer.pointee.materialIndex = renderable.uniform.materialIndex
-                    pointer.pointee.vertices = renderable.uniform.vertices
-                    pointer = pointer.advanced(by: 1)
+                    instanceUniforms.append(renderable.uniform)
                 }
             }
         }
         
         checkInstanceBufferCount(instanceUniforms.count)
-//        instancesBuffer.contents().copyMemory(from: instanceUniforms, byteCount: MemoryLayout<InstanceUniform>.stride * instanceUniforms.count)
+        instancesBuffer.contents().copyMemory(from: instanceUniforms, byteCount: MemoryLayout<InstanceUniform>.stride * instanceUniforms.count)
         
         let instanceCount = instanceUniforms.count
         if instanceCount == 0 {
