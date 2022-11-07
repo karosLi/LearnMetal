@@ -19,7 +19,7 @@ protocol TexturesRendererProtocol: NSObject {
 class TexturesRenderer: NSObject {
     public weak var delegate: TexturesRendererProtocol?
     
-    private lazy var inFlightSemaphore = DispatchSemaphore(value: 1)
+    private lazy var inFlightSemaphore = DispatchSemaphore(value: 3)
     
     private var viewPortSize: vector_uint2 = vector_uint2(1,1)
     
@@ -302,9 +302,8 @@ extension TexturesRenderer: MTKViewDelegate {
         let commandBuffer = MetalContext.commandQueue.makeCommandBuffer()!
         commandBuffer.label = "Frame Command Buffer"
 //        commandBuffer.addCompletedHandler { [weak self] (_) in
-////            self?.inFlightSemaphore.signal()
+//            self?.inFlightSemaphore.signal()
 //        }
-        
         
         var materials: [Material] = []
         for spriteNode in spriteNodes {
