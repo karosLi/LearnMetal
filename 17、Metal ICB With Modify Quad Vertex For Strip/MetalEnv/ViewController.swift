@@ -68,7 +68,7 @@ class ViewController: UIViewController {
 //        node1.uniform.rotation = [0, 0, 0.45]
 //        node1.uniform.stripRadians = [0.45, 0.8]
         node3.uniform.textureFrame = Rect(x: 0, y: 0, width: 1, height: 1)
-        renderer.spriteNodes.append(node1)
+        renderer.spriteNodes.append(node3)
         
         /// iPhoneX 3500 可以保持 60帧
 //        for _ in 0..<3500 {
