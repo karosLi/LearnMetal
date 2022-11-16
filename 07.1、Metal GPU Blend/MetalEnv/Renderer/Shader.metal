@@ -197,5 +197,5 @@ fragment half4 protect_instance_fragment_shader(const VertexOut vertexIn [[ stag
                                        sampler sampler2d [[ sampler(0) ]]) {
     float4 color = protectTexture.sample(sampler2d, vertexIn.textureCoords);
     float4 alphaColor = alphaTexture.sample(sampler2d, float2(vertexIn.textureCoords.x, 1 - vertexIn.textureCoords.y));
-    return half4(color.r, color.g, color.b, alphaColor.r);
+    return half4(vertexIn.color.r, vertexIn.color.g, vertexIn.color.b, alphaColor.r);
 }

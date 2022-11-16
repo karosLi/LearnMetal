@@ -85,65 +85,54 @@ extension TexturesRenderer {
     
     private func buildPipelineState(device: MTLDevice) {
         let library = device.makeDefaultLibrary()
-        let vertexFunction = library?.makeFunction(name: "instance_vertex_shader")
-        let fragmentFunction = library?.makeFunction(name: "instance_fragment_shader")
         
-        let pipelineDescriptor = buildPipelineDescriptor(vertext: vertexFunction, fragment: fragmentFunction)
+        /// 绘制小红的渲染管线
+        let pipelineDescriptor = buildPipelineDescriptor(vertext: library?.makeFunction(name: "instance_vertex_shader"), fragment: library?.makeFunction(name: "instance_fragment_shader"))
         do {
             pipelineState = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
         } catch let error as NSError {
             print("error: \(error.localizedDescription)")
         }
         
-        
+        /// 离屏渲染，绘制护盾纹理的的透明纹理
         alphaTexture = makeTexture(size: CGSize(width: CGFloat(viewPortSize.x), height: CGFloat(viewPortSize.y)), pixelFormat: .bgra8Unorm, label: "alphaTexture")
         offlineAlphaRenderPassDescriptor = MTLRenderPassDescriptor()
         let attachment = offlineAlphaRenderPassDescriptor?.colorAttachments[0]
         attachment?.texture = alphaTexture
         attachment?.loadAction = .clear
         attachment?.storeAction = .store
-        attachment?.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
+        attachment?.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
         
         let offlinePipelineDescriptor = buildPipelineDescriptor(vertext: library?.makeFunction(name: "offline_protect_instance_vertex_shader"), fragment: library?.makeFunction(name: "offline_protect_instance_fragment_shader"))
         offlinePipelineDescriptor.colorAttachments[0].pixelFormat = alphaTexture!.pixelFormat
-//        offlinePipelineDescriptor.colorAttachments[0].writeMask = .red
-//        offlinePipelineDescriptor.colorAttachments[0].rgbBlendOperation = .max
-        offlinePipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .oneMinusSourceColor;
-        offlinePipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .oneMinusSourceColor;
+        /// 护盾透明度颜色混合
+        /// 混合方程
+        /// 混合颜色 = COLORsrc * (1-COLORdest) + COLORdest * (1-COLORsrc)
+        /// 混合Alpha = ALPHAsrc * (1-ALPHAdest) + ALPHdest * ALPHdest
+        /// 护盾的每个像素点颜色一样，只是 alpha 值不一样，内圈的 alpha 为 0.5，外圈的 alpha 为 0.7，由于颜色一样，就假设颜色是 A
+        /// Case 1:  交界处 dest = (A, 0.5) src = (A, 0.5)
+        /// 混合颜色 = A * (1 - A) + A * (1 - A) = A * (2 - 2A) = 
+        /// 混合Alpha = 0.5 * (1 - 0.5) + 0.5 * 0.5 = 0.5
+        offlinePipelineDescriptor.colorAttachments[0].rgbBlendOperation = .add
+        offlinePipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add
+        offlinePipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .oneMinusDestinationColor;
+        offlinePipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .oneMinusDestinationAlpha;
         offlinePipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceColor;
-        offlinePipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceColor;
+        offlinePipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .destinationAlpha;
         do {
             offlineAlphaPipelineState = try device.makeRenderPipelineState(descriptor: offlinePipelineDescriptor)
         } catch let error as NSError {
             print("error: \(error.localizedDescription)")
         }
         
+        /// 绘制护盾的管线
         let protectPipelineDescriptor = buildPipelineDescriptor(vertext: library?.makeFunction(name: "protect_instance_vertex_shader"), fragment: library?.makeFunction(name: "protect_instance_fragment_shader"))
         protectPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .sourceAlpha;
         protectPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .sourceAlpha;
         protectPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha;
         protectPipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha;
-//        protectPipelineDescriptor.colorAttachments[0].rgbBlendOperation = .add
-//        protectPipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add
-//        protectPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .one
-//        protectPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .one
-//        protectPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .one
-//        protectPipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .zero
-        
         do {
             protectPipelineState = try device.makeRenderPipelineState(descriptor: protectPipelineDescriptor)
-        } catch let error as NSError {
-            print("error: \(error.localizedDescription)")
-        }
-        
-        let protectPipelineDescriptor1 = buildPipelineDescriptor(vertext: library?.makeFunction(name: "protect_instance_vertex_shader"), fragment: library?.makeFunction(name: "protect_instance_fragment_shader"))
-        protectPipelineDescriptor1.colorAttachments[0].sourceRGBBlendFactor = .sourceAlpha;
-        protectPipelineDescriptor1.colorAttachments[0].sourceAlphaBlendFactor = .sourceAlpha;
-        protectPipelineDescriptor1.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha;
-        protectPipelineDescriptor1.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha;
-        
-        do {
-            protectPipelineState1 = try device.makeRenderPipelineState(descriptor: protectPipelineDescriptor1)
         } catch let error as NSError {
             print("error: \(error.localizedDescription)")
         }
@@ -191,13 +180,12 @@ extension TexturesRenderer: MTKViewDelegate {
               let pipelineState = pipelineState,
               let offlineAlphaRenderPassDescriptor = offlineAlphaRenderPassDescriptor,
               let offlineAlphaPipelineState = offlineAlphaPipelineState,
-              let protectPipelineState = protectPipelineState,
-              let protectPipelineState1 = protectPipelineState1 else { return }
+              let protectPipelineState = protectPipelineState else { return }
         
         let commandBuffer = commandQueue.makeCommandBuffer()!
         
-        /// 离屏渲染，获取蛇的 alhpa 值，把 红色通道当做 alpha 值
-        /// 把 护盾纹理盖在蛇节点上，就可以取到 连续的护盾连起来的轮廓，再把这些轮廓取 红色的最大值，并输出到 透明纹理里
+        /// 离屏渲染，获取蛇的 alhpa 值
+        /// 把 护盾纹理盖在蛇节点上，就可以取到 连续的护盾连起来的轮廓，再把这些 alpha 连起来的轮廓进行混合并输出到 透明纹理里
         let alphaSnakeRenderEncoder = makeRenderEncoder(commandBuffer, descriptor: offlineAlphaRenderPassDescriptor)
         alphaSnakeRenderEncoder?.setFragmentTexture(textures.last, index: 0)
         alphaSnakeRenderEncoder?.setRenderPipelineState(offlineAlphaPipelineState)
@@ -212,7 +200,7 @@ extension TexturesRenderer: MTKViewDelegate {
         snakeRenderEncoder?.drawIndexedPrimitives(type: primitiveType, indexCount: indices.count, indexType: .uint16, indexBuffer: indexBuffer, indexBufferOffset: 0, instanceCount: instances.count - 1, baseVertex: 0, baseInstance: 0)
         
         /// 渲染护盾
-        /// 根据 透明纹理里的透明度值（透明纹理包含的是所有蛇的透明度） 和 护盾纹理(全屏的护盾纹理)的颜色，进行混合
+        /// 根据 透明纹理里的透明度值（透明纹理包含的是所有蛇的透明度） 和 一个纯颜色进行颜色混合
         snakeRenderEncoder?.setRenderPipelineState(protectPipelineState)
         snakeRenderEncoder?.setFragmentTexture(textures.last, index: 0)
         snakeRenderEncoder?.setFragmentTexture(alphaTexture, index: 1)
