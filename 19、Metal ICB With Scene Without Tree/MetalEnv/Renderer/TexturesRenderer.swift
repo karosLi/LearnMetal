@@ -193,7 +193,7 @@ extension TexturesRenderer {
 
         
         let vertexDescriptor = MTLVertexDescriptor()
-        vertexDescriptor.attributes[0].format = .float2
+        vertexDescriptor.attributes[0].format = .float3
         vertexDescriptor.attributes[0].offset = 0
         vertexDescriptor.attributes[0].bufferIndex = 0
         vertexDescriptor.attributes[1].format = .float2
@@ -382,7 +382,7 @@ extension TexturesRenderer: MTKViewDelegate {
         computeEncoder?.endEncoding()
         
         let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor)!
-        renderEncoder.setDepthStencilState(depthStencilState)
+//        renderEncoder.setDepthStencilState(depthStencilState)
         renderEncoder.setFrontFacing(.counterClockwise)
         renderEncoder.setCullMode(.back)
 //            renderEncoder.setTriangleFillMode(.lines)

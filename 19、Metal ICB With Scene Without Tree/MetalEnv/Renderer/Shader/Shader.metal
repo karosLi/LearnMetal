@@ -208,6 +208,9 @@ fragment half4 instance_fragment_shader(const RasterizerData vertexIn [[ stage_i
     if (!is_null_texture(mainTexture)) {
         // tiling 为 (1, 1) 时，表示显示整纹理完整的一份贴图，如果超过 1 则会重复贴图，如果小于 1 则显示的就是贴补的部分内容
         float4 color = mainTexture.sample(texture_sampler, vertexIn.uv * instance.tiling);
+//        if (color.a < 0.2) {
+//            discard_fragment();
+//        }
         return half4(color.r, color.g, color.b, color.a) * instance.alpha;
     }
     
