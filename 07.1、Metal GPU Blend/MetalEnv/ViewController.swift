@@ -49,7 +49,7 @@ class ViewController: UIViewController {
         
         /// 蛇2，横着的蛇，要顺时针旋转 90 度，调整方向
         for index in (0..<5) {
-            let instance = InstanceUniform(center: vector_float2(-400 + Float(index) * 200.0, 300), size: vector_float2(300.0, 300.0), radian: -Float.pi / 2.0, textureIndex: index == 4 ? 0 : 1, color: vector_float4(151/255, 224/255, 255/255, 1.0))
+            let instance = InstanceUniform(center: vector_float2(-400 + Float(index) * 200.0, 300), size: vector_float2(300.0, 300.0), radian: -Float.pi / 2.0, textureIndex: index == 4 ? 0 : 1, color: vector_float4(0.59, 0.87, 1.0, 1.0))
             renderer.add(instance: instance)
         }
         

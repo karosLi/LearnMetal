@@ -105,14 +105,20 @@ extension TexturesRenderer {
         
         let offlinePipelineDescriptor = buildPipelineDescriptor(vertext: library?.makeFunction(name: "offline_protect_instance_vertex_shader"), fragment: library?.makeFunction(name: "offline_protect_instance_fragment_shader"))
         offlinePipelineDescriptor.colorAttachments[0].pixelFormat = alphaTexture!.pixelFormat
+        /// 可视化混合工具
+        /// https://www.andersriggelsen.dk/glblendfunc.php https://resource-1257147347.cos.ap-shanghai.myqcloud.com/protection.png
         /// 护盾透明度颜色混合
-        /// 混合方程
+        /// 混合方程，还是有点搞不懂，试出来的
         /// 混合颜色 = COLORsrc * (1-COLORdest) + COLORdest * (1-COLORsrc)
         /// 混合Alpha = ALPHAsrc * (1-ALPHAdest) + ALPHdest * ALPHdest
-        /// 护盾的每个像素点颜色一样，只是 alpha 值不一样，内圈的 alpha 为 0.5，外圈的 alpha 为 0.7，由于颜色一样，就假设颜色是 A
+        /// 护盾的每个像素点颜色一样，只是 alpha 值不一样，内圈的 alpha 为 0.5，外圈的 alpha 为 0.7，由于颜色一样，就假设颜色是 A (0.59, 0.87, 1.0)
         /// Case 1:  交界处 dest = (A, 0.5) src = (A, 0.5)
-        /// 混合颜色 = A * (1 - A) + A * (1 - A) = A * (2 - 2A) = 
+        /// 混合颜色 = A * (1 - A) + A * (1 - A) = A * (2 - 2A) = (0.48, 0.22, 0)
         /// 混合Alpha = 0.5 * (1 - 0.5) + 0.5 * 0.5 = 0.5
+        ///Case 2:  交界处 dest = (A, 0.5) src = (A, 0.7)
+        /// 混合颜色 = A * (1 - A) + A * (1 - A) = A * (2 - 2A) = (0.48, 0.22, 0)
+        /// 混合Alpha = 0.7 * (1 - 0.5) + 0.5 * 0.5 = 0.75
+        
         offlinePipelineDescriptor.colorAttachments[0].rgbBlendOperation = .add
         offlinePipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add
         offlinePipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .oneMinusDestinationColor;
