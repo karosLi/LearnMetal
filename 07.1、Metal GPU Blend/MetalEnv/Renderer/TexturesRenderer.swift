@@ -101,30 +101,41 @@ extension TexturesRenderer {
         attachment?.texture = alphaTexture
         attachment?.loadAction = .clear
         attachment?.storeAction = .store
-        attachment?.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
         
         let offlinePipelineDescriptor = buildPipelineDescriptor(vertext: library?.makeFunction(name: "offline_protect_instance_vertex_shader"), fragment: library?.makeFunction(name: "offline_protect_instance_fragment_shader"))
         offlinePipelineDescriptor.colorAttachments[0].pixelFormat = alphaTexture!.pixelFormat
         /// 可视化混合工具
         /// https://www.andersriggelsen.dk/glblendfunc.php https://resource-1257147347.cos.ap-shanghai.myqcloud.com/protection.png
         /// 护盾透明度颜色混合
-        /// 混合方程，还是有点搞不懂，试出来的
+        /// 混合方程，由于离屏渲染输出的 rgba 都是 alpha 值，所有其实只需要关注 Alpha 的混合就好了，另外需要注意在画第一个混沌并输出 rgba 时 （alpha, alpha, alpha, alpha），改像素点会先和背景进行混合
         /// 混合颜色 = COLORsrc * (1-COLORdest) + COLORdest * (1-COLORsrc)
-        /// 混合Alpha = ALPHAsrc * (1-ALPHAdest) + ALPHdest * ALPHdest
-        /// 护盾的每个像素点颜色一样，只是 alpha 值不一样，内圈的 alpha 为 0.5，外圈的 alpha 为 0.7，由于颜色一样，就假设颜色是 A (0.59, 0.87, 1.0)
-        /// Case 1:  交界处 dest = (A, 0.5) src = (A, 0.5)
-        /// 混合颜色 = A * (1 - A) + A * (1 - A) = A * (2 - 2A) = (0.48, 0.22, 0)
-        /// 混合Alpha = 0.5 * (1 - 0.5) + 0.5 * 0.5 = 0.5
-        ///Case 2:  交界处 dest = (A, 0.5) src = (A, 0.7)
-        /// 混合颜色 = A * (1 - A) + A * (1 - A) = A * (2 - 2A) = (0.48, 0.22, 0)
-        /// 混合Alpha = 0.7 * (1 - 0.5) + 0.5 * 0.5 = 0.75
-        
-        offlinePipelineDescriptor.colorAttachments[0].rgbBlendOperation = .add
+        /// 混合Alpha = ALPHAsrc * (1-ALPHAdest) + ALPHAdest * (1-ALPHAsrc)
+        /// 背景
+        /// 1、背景融合场景
+        /// 背景颜色 alpha 为 0.0，护盾上内圈的 alpha 为 0.5，外圈的 alpha 为 0.7
+        /// Case 1:  护盾内圈与背景融合 dest = 0.0 src = 0.5
+        /// 混合Alpha = 0.5 * (1 - 0.0 ) + 0.0  * (1 - 0.5 ) = 0.5
+        /// Case 2:  护盾外圈与背景融合 dest = 0.0 src = 0.7
+        /// 混合Alpha = 0.7 * (1 - 0.0 ) + 0.0  * (1 - 0.7 ) = 0.7
+        /// 2、护盾融合场景
+        /// 护盾上内圈的 alpha 为 0.5，外圈的 alpha 为 0.7
+        /// Case 1:  重叠处中部 dest = 0.5 src = 0.5
+        /// 混合Alpha = 0.5 * (1 - 0.5 ) + 0.5  * (1 - 0.5 ) = 0.5
+        /// Case 2:  重叠处上部 dest = 0.5 src = 0.7
+        /// 混合Alpha = 0.7 * (1 - 0.5) + 0.5 * (1- 0.7) = 0.5
+        /// Case 3:   重叠处下部 dest = 0.7 src = 0.5
+        /// 混合Alpha =0.5 * (1- 0.7)  + 0.7 * (1 - 0.5) = 0.5
+        /// Case 4:   护盾纹理透明部分，dest 护盾边缘是透明的，src 的内圈和它混合 dest = 0.0 src = 0.5
+        /// 混合Alpha =0.5 * (1- 0.0)  + 0.0 * (1 - 0.5) = 0.5
+        /// Case 5:   护盾纹理透明部分，dest 护盾边缘是透明的，src 的外圈和它混合 dest = 0.0 src = 0.7
+        /// 混合Alpha =0.7 * (1- 0.0)  + 0.0 * (1 - 0.7) = 0.7
+        /// 注意：
+        /// 1、这个混合方程必须要求护盾内圈的 alpha 为 0.5，外圈的 alpha 可以为任意值，如果 内圈的 alpha 不为 0.5，假设为 0.8，那么 Case 1：混合Alpha = 0.8 * (1 - 0.8 ) + 0.8  * (1 - 0.8 ) = 0.36，得到的 0.36 就会不等于 0.8，这样会导致重叠处中部的颜色与非重叠处内圈的颜色不一致
+        /// 2、需要考虑纹理的透明部分的混合到混合方程里
+        attachment?.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
         offlinePipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add
-        offlinePipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .oneMinusDestinationColor;
-        offlinePipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .oneMinusDestinationAlpha;
-        offlinePipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceColor;
-        offlinePipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .destinationAlpha;
+        offlinePipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .oneMinusDestinationColor;
+        offlinePipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceColor;
         do {
             offlineAlphaPipelineState = try device.makeRenderPipelineState(descriptor: offlinePipelineDescriptor)
         } catch let error as NSError {
