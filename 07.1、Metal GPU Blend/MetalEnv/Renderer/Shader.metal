@@ -35,7 +35,7 @@ struct VertexOut {
     float2 textureCoords;
     int textureIndex;
     int instanceId;
-    float4 color;
+    float4 instanceColor;
 };
 
 // 缩放矩阵
@@ -101,7 +101,7 @@ vertex VertexOut instance_vertex_shader(const VertexIn vertexIn [[ stage_in ]],
     vertexOut.textureCoords = textureCoords;
     vertexOut.textureIndex = instance.textureIndex;
     vertexOut.instanceId = instanceId;
-    vertexOut.color = instance.color;
+    vertexOut.instanceColor = instance.color;
     
     return vertexOut;
 }
@@ -141,7 +141,7 @@ vertex VertexOut offline_protect_instance_vertex_shader(const VertexIn vertexIn 
     vertexOut.textureCoords = textureCoords;
     vertexOut.textureIndex = instance.textureIndex;
     vertexOut.instanceId = instanceId;
-    vertexOut.color = instance.color;
+    vertexOut.instanceColor = instance.color;
     
     return vertexOut;
 }
@@ -186,7 +186,7 @@ vertex VertexOut protect_instance_vertex_shader(const VertexIn vertexIn [[ stage
     vertexOut.textureCoords = textureCoords;
     vertexOut.textureIndex = instance.textureIndex;
     vertexOut.instanceId = instanceId;
-    vertexOut.color = instance.color;
+    vertexOut.instanceColor = instance.color;
     
     return vertexOut;
 }
@@ -195,12 +195,12 @@ fragment half4 protect_instance_fragment_shader(const VertexOut vertexIn [[ stag
                                         texture2d<float> protectTexture [[ texture(0) ]],
                                         texture2d<float> alphaTexture [[ texture(1) ]],
                                        sampler sampler2d [[ sampler(0) ]]) {
-    float4 color = protectTexture.sample(sampler2d, vertexIn.textureCoords);
+//    float4 color = protectTexture.sample(sampler2d, vertexIn.textureCoords);
     /// 透明纹理的纹理坐标需要是 (x, 1 - y), 因为创建出来的 render target 纹理对象原点是在左上角的
     float4 alphaColor = alphaTexture.sample(sampler2d, float2(vertexIn.textureCoords.x, 1 - vertexIn.textureCoords.y));
     float alpha = alphaColor.a;
-//    if (alpha == 0.41) {
+//    if (alpha > 0.4 && alpha < 0.5) {
 //        alpha = 0.7;
 //    }
-    return half4(vertexIn.color.r, vertexIn.color.g, vertexIn.color.b, alpha);
+    return half4(vertexIn.instanceColor.r, vertexIn.instanceColor.g, vertexIn.instanceColor.b, alpha);
 }
