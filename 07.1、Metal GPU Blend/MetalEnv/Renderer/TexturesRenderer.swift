@@ -134,8 +134,11 @@ extension TexturesRenderer {
         /// 2、需要考虑纹理的透明部分的混合到混合方程里
         attachment?.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
         offlinePipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add
-        offlinePipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .oneMinusDestinationColor;
-        offlinePipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceColor;
+        offlinePipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .oneMinusDestinationAlpha;
+        offlinePipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha;
+        // 这两行的目的是为了 metal 调试的时候可以看到正确的预览，其实不加的话，要不影响结果
+        offlinePipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .oneMinusDestinationColor;
+        offlinePipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceColor;
         do {
             offlineAlphaPipelineState = try device.makeRenderPipelineState(descriptor: offlinePipelineDescriptor)
         } catch let error as NSError {
