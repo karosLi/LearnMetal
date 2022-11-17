@@ -110,7 +110,6 @@ extension TexturesRenderer {
         /// 混合方程，由于离屏渲染输出的 rgba 都是 alpha 值，所有其实只需要关注 Alpha 的混合就好了，另外需要注意在画第一个混沌并输出 rgba 时 （alpha, alpha, alpha, alpha），改像素点会先和背景进行混合
         /// 混合颜色 = COLORsrc * (1-COLORdest) + COLORdest * (1-COLORsrc)
         /// 混合Alpha = ALPHAsrc * (1-ALPHAdest) + ALPHAdest * (1-ALPHAsrc)
-        /// 背景
         /// 1、背景融合场景
         /// 背景颜色 alpha 为 0.0，护盾上内圈的 alpha 为 0.5，外圈的 alpha 为 0.7
         /// Case 1:  护盾内圈与背景融合 dest = 0.0 src = 0.5
