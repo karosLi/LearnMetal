@@ -130,8 +130,9 @@ extension TexturesRenderer {
         /// Case 5:   护盾纹理透明部分，dest 护盾边缘是透明的，src 的外圈和它混合 dest = 0.0 src = 0.7
         /// 混合Alpha =0.7 * (1- 0.0)  + 0.0 * (1 - 0.7) = 0.7
         /// 注意：
-        /// 1、这个混合方程必须要求护盾内圈的 alpha 为 0.5，外圈的 alpha 可以为任意值，如果 内圈的 alpha 不为 0.5，假设为 0.8，那么 Case 1：混合Alpha = 0.8 * (1 - 0.8 ) + 0.8  * (1 - 0.8 ) = 0.36，得到的 0.36 就会不等于 0.8，这样会导致重叠处中部的颜色与非重叠处内圈的颜色不一致
-        /// 2、需要考虑纹理的透明部分的混合到混合方程里
+        /// 1、需要考虑纹理与背景的混合
+        /// 2、需要考虑纹理的透明部分的混合
+        /// 3、这个混合方程必须要求护盾内圈的 alpha 为 0.5，外圈的 alpha 可以为任意值，如果 内圈的 alpha 不为 0.5，假设为 0.8，那么 Case 1：混合Alpha = 0.8 * (1 - 0.8 ) + 0.8  * (1 - 0.8 ) = 0.36，得到的 0.36 就会不等于 0.8，这样会导致重叠处中部的颜色与非重叠处内圈的颜色不一致
         attachment?.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
         offlinePipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add
         offlinePipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .oneMinusDestinationAlpha;
